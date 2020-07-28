@@ -12,7 +12,7 @@
 
 
 // light types
-enum ESR_LightType
+enum class ESR_LightType
 {
 	LightType_Point,
 	LightType_Directional,
@@ -25,7 +25,7 @@ class FSR_Light
 {
 public:
 	FSR_Light() 
-		: _type(LightType_Point)
+		: _type(ESR_LightType::LightType_Point)
 		, _color(1,1,1)
 		, _position(0,0,0,1)
 	{}
