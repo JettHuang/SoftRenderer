@@ -355,7 +355,7 @@ void FSR_Renderer::RasterizeTriangle(const FSR_Context& InContext, const FSRVert
 			// perspective correct interpolate
 			float w0 = E12 / E012;
 			float w1 = E20 / E012;
-			float w2 = E01 / E012;
+			float w2 = (1.f - w0 - w1); // fixed for (w0 + w1 + w2) != 1.0
 
 			float depth = w0 * SV0._screen_pos.z + w1 * SV1._screen_pos.z + w2 * SV2._screen_pos.z;
 			float Z = 1.f / (w0 * SV0._inv_w + w1 * SV1._inv_w + w2 * SV2._inv_w);
