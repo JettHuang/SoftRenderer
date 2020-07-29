@@ -18,7 +18,7 @@ static const FPixelFormatDesc sPixelFormatTable[] =
 	{ EPixelFormat::PIXEL_FORMAT_RGB888,     3},
 	{ EPixelFormat::PIXEL_FORMAT_RGBA8888,   4},
 	{ EPixelFormat::PIXEL_FORMAT_RGBF32,     3*4},
-	{ EPixelFormat::PIXEL_FORMAT_RGBA8888,   4*4},
+	{ EPixelFormat::PIXEL_FORMAT_RGBAF32,    4*4},
 };
 
 uint32_t LookupPixelFormatBytes(EPixelFormat InFormat)
@@ -29,14 +29,6 @@ uint32_t LookupPixelFormatBytes(EPixelFormat InFormat)
 	assert(desc._format == InFormat);
 	return desc._bytes_per_pixel;
 }
-
-void CopyVertexShaderOutput(FSRVertexShaderOutput& Dst, const FSRVertexShaderOutput& Src)
-{
-	Dst._attri_cnt = Src._attri_cnt;
-	size_t Bytes = ((uint8_t *)&(Dst._attributes[Dst._attri_cnt])) - ((uint8_t*)&Dst);
-	memcpy(&Dst, &Src, Bytes);
-}
-
 
 FSR_Context::FSR_Context()
 	: _viewport_rect(glm::vec2(0,0), glm::vec2(1,1))
@@ -68,7 +60,7 @@ void FSR_Context::ClearRenderTarget(const glm::vec4& InColor)
 {
 	if (_rt_depth)
 	{
-		_rt_depth->Clear(InColor.r, InColor.g, InColor.b, InColor.a);
+		_rt_depth->Clear(1.f, 1.f, 1.f, 1.f);
 	}
 	for (uint32_t i = 0; i < MAX_MRT_COUNT; ++i)
 	{
@@ -106,12 +98,27 @@ void FSR_Context::SetProjectionMatrix(const glm::mat4x4& InProj)
 	_projection_inv = glm::inverse(InProj);
 }
 
+std::shared_ptr<FSR_Buffer2D> FSR_Context::GetDepthBuffer() const
+{
+	return _rt_depth;
+}
+
+std::shared_ptr<FSR_Buffer2D> FSR_Context::GetColorBuffer(uint32_t InIndex) const
+{
+	if (InIndex < MAX_MRT_COUNT)
+	{
+		return _rt_colors[InIndex];
+	}
+	
+	return nullptr;
+}
+
 glm::vec3 FSR_Context::NdcToScreenPostion(const glm::vec3& ndc) const
 {
 	glm::vec3 screen_pos;
 
 	screen_pos.x = glm::mix(_viewport_rect._min.x, _viewport_rect._max.x, (ndc.x + 1.0f) * 0.5f);
-	screen_pos.y = glm::mix(_viewport_rect._min.y, _viewport_rect._max.y, (ndc.x + 1.0f) * 0.5f);
+	screen_pos.y = glm::mix(_viewport_rect._min.y, _viewport_rect._max.y, (ndc.y + 1.0f) * 0.5f);
 	screen_pos.z = (ndc.z + 1.0f) * 0.5f;
 	return screen_pos;
 }
@@ -122,7 +129,7 @@ bool FSR_Context::DepthTestAndOverride(uint32_t cx, uint32_t cy, float InDepth) 
 	{
 		float PrevDepth = 0.f;
 		_rt_depth->Read(cx, cy, PrevDepth);
-		if (InDepth < PrevDepth)
+		if (InDepth <= PrevDepth)
 		{
 			_rt_depth->Write(cx, cy, InDepth);
 			return true;

@@ -30,7 +30,19 @@ class FSR_PixelShader
 public:
 	virtual ~FSR_PixelShader() {}
 
-	virtual void Process(const FSR_Context& InContext, const FSRPixelShaderInput &Inpur, FSRPixelShaderOutput &Output) = 0;
+	virtual void Process(const FSR_Context& InContext, const FSRPixelShaderInput &Input, FSRPixelShaderOutput &Output) = 0;
 };
 
 
+// simple vs & ps
+class FSR_SimpleVertexShader : public FSR_VertexShader
+{
+public:
+	virtual void Process(const FSR_Context& InContext, const FSRVertexShaderInput& Input, FSRVertexShaderOutput& Output) override;
+};
+
+class FSR_SimplePixelShader : public FSR_PixelShader
+{
+public:
+	virtual void Process(const FSR_Context& InContext, const FSRPixelShaderInput& Input, FSRPixelShaderOutput& Output) override;
+};

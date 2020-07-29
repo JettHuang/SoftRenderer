@@ -41,11 +41,15 @@ public:
 	// set material
 	void SetMaterial(const std::shared_ptr<FSR_Material>& InMaterial) { _material = InMaterial; }
 	//set pipeline
-	void SetShader(const std::shared_ptr<FSR_VertexShader>& InVs, const std::shared_ptr<FSR_PixelShader>& InPs)
+	void SetShader(const std::shared_ptr<FSR_VertexShader>& InVs, const std::shared_ptr<FSR_PixelShader>& InPs) 
 	{
 		_vs = InVs;
 		_ps = InPs;
 	}
+
+	// get frame-buffer
+	std::shared_ptr<FSR_Buffer2D> GetDepthBuffer() const;
+	std::shared_ptr<FSR_Buffer2D> GetColorBuffer(uint32_t InIndex) const;
 
 	glm::vec3 NdcToScreenPostion(const glm::vec3& ndc) const;
 	const FSR_Rectangle& ViewportRectangle() const { return _viewport_rect; }

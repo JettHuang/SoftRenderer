@@ -32,7 +32,7 @@ bool FSR_Buffer2D::Read(uint32_t cx, uint32_t cy, uint8_t& R, uint8_t& G, uint8_
 		return false;
 	}
 
-	const uint8_t* pData = _buffer->data();
+	const uint8_t* pData = _buffer->data() + offset;
 	switch (_format)
 	{
 	case EPixelFormat::PIXEL_FORMAT_U16:
@@ -89,7 +89,7 @@ bool FSR_Buffer2D::Read(uint32_t cx, uint32_t cy, uint16_t& Value) const
 		return false;
 	}
 
-	const uint8_t* pData = _buffer->data();
+	const uint8_t* pData = _buffer->data() + offset;
 	switch (_format)
 	{
 	case EPixelFormat::PIXEL_FORMAT_U16:
@@ -114,7 +114,7 @@ bool FSR_Buffer2D::Read(uint32_t cx, uint32_t cy, float& R, float& G, float& B, 
 		return false;
 	}
 
-	const uint8_t* pData = _buffer->data();
+	const uint8_t* pData = _buffer->data() + offset;
 	switch (_format)
 	{
 	case EPixelFormat::PIXEL_FORMAT_U16:
@@ -170,7 +170,7 @@ bool FSR_Buffer2D::Read(uint32_t cx, uint32_t cy, float& Value)
 		return false;
 	}
 
-	const uint8_t* pData = _buffer->data();
+	const uint8_t* pData = _buffer->data() + offset;
 	switch (_format)
 	{
 	case EPixelFormat::PIXEL_FORMAT_U16:
@@ -213,7 +213,7 @@ bool FSR_Buffer2D::Write(uint32_t cx, uint32_t cy, uint8_t R, uint8_t G, uint8_t
 		return false;
 	}
 
-	uint8_t* pData = _buffer->data();
+	uint8_t* pData = _buffer->data() + offset;
 	switch (_format)
 	{
 	case EPixelFormat::PIXEL_FORMAT_U16:
@@ -267,7 +267,7 @@ bool FSR_Buffer2D::Write(uint32_t cx, uint32_t cy, uint16_t& Value)
 		return false;
 	}
 
-	uint8_t* pData = _buffer->data();
+	uint8_t* pData = _buffer->data() + offset;
 	switch (_format)
 	{
 	case EPixelFormat::PIXEL_FORMAT_U16:
@@ -296,7 +296,7 @@ bool FSR_Buffer2D::Write(uint32_t cx, uint32_t cy, float R, float G, float B, fl
 		return false;
 	}
 
-	uint8_t* pData = _buffer->data();
+	uint8_t* pData = _buffer->data() + offset;
 	switch (_format)
 	{
 	case EPixelFormat::PIXEL_FORMAT_U16:
@@ -355,7 +355,7 @@ bool FSR_Buffer2D::Write(uint32_t cx, uint32_t cy, float R)
 		return false;
 	}
 
-	uint8_t* pData = _buffer->data();
+	uint8_t* pData = _buffer->data() + offset;
 	switch (_format)
 	{
 	case EPixelFormat::PIXEL_FORMAT_U16:
@@ -398,11 +398,11 @@ void FSR_Buffer2D::Clear(float R, float G, float B, float A)
 	{
 	case EPixelFormat::PIXEL_FORMAT_U16:
 	{
-		uint16_t R = glm::clamp<uint16_t>(uint16_t(R * 65535.f), 0, 65535);
+		uint16_t R16 = glm::clamp<uint16_t>(uint16_t(R * 65535.f), 0, 65535);
 		uint16_t* pData = reinterpret_cast<uint16_t*>(_buffer->data());
 		for (uint32_t k = 0; k < (_w * _h); ++k)
 		{
-			*pData++ = R;
+			*pData++ = R16;
 		}
 	}
 		break;

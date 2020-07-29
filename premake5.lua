@@ -53,6 +53,9 @@ project "Viewer"
     language "C++"
     kind "ConsoleApp"
 
+	dependson { "Renderer" }
+	links { "Renderer" }
+	
     includedirs {
         "./ThirdParty/glm",
 		"./ThirdParty/stb",

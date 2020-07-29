@@ -21,6 +21,6 @@ public:
 
 protected:
 	static uint32_t ClipAgainstNearPlane(const FSRVertexShaderOutput InVerts[3], FSRVertexShaderOutput OutVerts[4]);
-	static void InterpolateVertex(const FSRVertexShaderOutput& P1, const FSRVertexShaderOutput& P2, float t, FSRVertexShaderOutput& OutVert);
+	static void InterpolateVertex_Linear(const FSRVertexShaderOutput& P1, const FSRVertexShaderOutput& P2, float t, FSRVertexShaderOutput& OutVert);
 	static void RasterizeTriangle(const FSR_Context& InContext, const FSRVertexShaderOutput& A, const FSRVertexShaderOutput& B, const FSRVertexShaderOutput& C);
 };

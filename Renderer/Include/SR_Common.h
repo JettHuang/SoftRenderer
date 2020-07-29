@@ -57,12 +57,38 @@ struct FSR_Rectangle
 	{}
 };
 
+// Attributes
+struct FSRVertexAttributes
+{
+	glm::vec3		_members[MAX_ATTRIBUTES_COUNT];
+	uint32_t		_count;
+
+	FSRVertexAttributes() : _count(0) {}
+	FSRVertexAttributes(const FSRVertexAttributes& InOther)
+	{
+		Copy(InOther);
+	}
+
+	FSRVertexAttributes& operator =(const FSRVertexAttributes& InOther)
+	{
+		Copy(InOther);
+		return *this;
+	}
+
+private:
+	inline void Copy(const FSRVertexAttributes& InOther)
+	{
+		_count = InOther._count;
+		size_t Bytes = ((uint8_t*)&(_members[_count])) - ((uint8_t*)&_members[0]);
+		memcpy(&_members[0], &InOther._members[0], Bytes);
+	}
+};
+
 // VS INPUT
 struct FSRVertexShaderInput
 {
-	glm::vec3		_vertex;
-	glm::vec3		_attributes[MAX_ATTRIBUTES_COUNT];
-	uint32_t		_attri_cnt;
+	glm::vec3			_vertex;
+	FSRVertexAttributes	_attributes;
 };
 
 using FSRVertex = FSRVertexShaderInput;
@@ -71,15 +97,13 @@ using FSRVertex = FSRVertexShaderInput;
 struct FSRVertexShaderOutput
 {
 	glm::vec4		_vertex; // projected vertex
-	glm::vec3		_attributes[MAX_ATTRIBUTES_COUNT];
-	uint32_t		_attri_cnt;
+	FSRVertexAttributes	_attributes;
 };
 
 // PS INPUT
 struct FSRPixelShaderInput
 {
-	glm::vec3  _attributes[MAX_ATTRIBUTES_COUNT];
-	uint32_t   _attri_cnt;
+	FSRVertexAttributes	_attributes;
 };
 
 // PS OUTPUT
@@ -92,5 +116,4 @@ struct FSRPixelShaderOutput
 
 // look up bytes of a format
 uint32_t LookupPixelFormatBytes(EPixelFormat InFormat);
-void CopyVertexShaderOutput(FSRVertexShaderOutput& Dst, const FSRVertexShaderOutput& Src);
 

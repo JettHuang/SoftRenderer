@@ -96,8 +96,9 @@ void FSR_Renderer::DrawTriangle(const FSR_Context& InContext, const FSRVertex& I
 	for (uint32_t i=0; i<sizeof(kFrustumPlanes)/sizeof(kFrustumPlanes[0]); ++i)
 	{
 		const glm::vec4* Plane = kFrustumPlanes[i];
-		bool bOutside = glm::dot(*Plane, Verts[0]._vertex) < 0.f && 
-			glm::dot(*Plane, Verts[1]._vertex) && glm::dot(*Plane, Verts[2]._vertex);
+		bool bOutside = (glm::dot(*Plane, Verts[0]._vertex) < 0.f) && 
+						(glm::dot(*Plane, Verts[1]._vertex) < 0.f) &&
+						(glm::dot(*Plane, Verts[2]._vertex) < 0.f);
 
 		if (bOutside) {
 			return; // Discard this triangle
@@ -132,15 +133,17 @@ uint32_t FSR_Renderer::ClipAgainstNearPlane(const FSRVertexShaderOutput InVerts[
 		if (D2 >= 0.f) // P2 is at the front of plane
 		{ 
 			if (D2 == 0.f || D1 >= 0.f) {
-				CopyVertexShaderOutput(OutVerts[newVerts], *P2);
+				OutVerts[newVerts]._vertex = P2->_vertex;
+				OutVerts[newVerts]._attributes = P2->_attributes;
 				newVerts++;
 			}
 			else // P1 is at the back of plane
 			{
 				t = D1 / (D1 - D2);
-				InterpolateVertex(*P1, *P2, t, OutVerts[newVerts]);
+				InterpolateVertex_Linear(*P1, *P2, t, OutVerts[newVerts]);
 				newVerts++;
-				CopyVertexShaderOutput(OutVerts[newVerts], *P2);
+				OutVerts[newVerts]._vertex = P2->_vertex;
+				OutVerts[newVerts]._attributes = P2->_attributes;
 				newVerts++;
 			}
 		}
@@ -148,7 +151,7 @@ uint32_t FSR_Renderer::ClipAgainstNearPlane(const FSRVertexShaderOutput InVerts[
 		{
 			if (D1 > 0.f) {
 				t = D1 / (D1 - D2);
-				InterpolateVertex(*P1, *P2, t, OutVerts[newVerts]);
+				InterpolateVertex_Linear(*P1, *P2, t, OutVerts[newVerts]);
 				newVerts++;
 			}
 			// otherwise discards the P1, P2
@@ -161,16 +164,16 @@ uint32_t FSR_Renderer::ClipAgainstNearPlane(const FSRVertexShaderOutput InVerts[
 	return newVerts;
 }
 
-void FSR_Renderer::InterpolateVertex(const FSRVertexShaderOutput& P1, const FSRVertexShaderOutput& P2, float t, FSRVertexShaderOutput& OutVert)
+void FSR_Renderer::InterpolateVertex_Linear(const FSRVertexShaderOutput& P1, const FSRVertexShaderOutput& P2, float t, FSRVertexShaderOutput& OutVert)
 {
-	assert(P1._attri_cnt == P2._attri_cnt);
+	assert(P1._attributes._count == P2._attributes._count);
 
 	OutVert._vertex = glm::mix(P1._vertex, P2._vertex, t);
-	for (uint32_t i = 0; i <P1._attri_cnt; i++)
+	for (uint32_t i = 0; i <P1._attributes._count; i++)
 	{
-		OutVert._attributes[i] = glm::mix(P1._attributes[i], P2._attributes[i], t);
+		OutVert._attributes._members[i] = glm::mix(P1._attributes._members[i], P2._attributes._members[i], t);
 	}
-	OutVert._attri_cnt = P1._attri_cnt;
+	OutVert._attributes._count = P1._attributes._count;
 }
 
 // https://www.scratchapixel.com/lessons/3d-basic-rendering/rasterization-practical-implementation/rasterization-stage
@@ -226,27 +229,29 @@ inline FSR_Rectangle BoundingboxOfTriangle(const FSR_RasterizedVert Verts[3])
 }
 
 
-inline void DivideVertexAttributesByW(const FSRVertexShaderOutput& VInput, float InOneOverW, FSRPixelShaderInput& PInput)
+inline void DivideVertexAttributesByW(const FSRVertexAttributes& VInput, float InOneOverW, FSRVertexAttributes& PInput)
 {
-	for (uint32_t k = 0; k < VInput._attri_cnt; ++k)
+	for (uint32_t k = 0; k < VInput._count; ++k)
 	{
-		PInput._attributes[k] = VInput._attributes[k] * InOneOverW;
+		PInput._members[k] = VInput._members[k] * InOneOverW;
 	}
-	PInput._attri_cnt = VInput._attri_cnt;
+	PInput._count = VInput._count;
 }
 
-inline void InterpolateVertexAttributes(const FSRPixelShaderInput& V0, float w0, 
-										const FSRPixelShaderInput& V1, float w1,
-										const FSRPixelShaderInput& V2, float w2,
+inline void InterpolateVertexAttributes(const FSRVertexAttributes& V0, float w0,
+										const FSRVertexAttributes& V1, float w1,
+										const FSRVertexAttributes& V2, float w2,
 										float Z,
-										FSRPixelShaderInput &Output)
+										FSRVertexAttributes&Output)
 {
-	for (uint32_t k = 0; k < V0._attri_cnt; ++k)
+	for (uint32_t k = 0; k < V0._count; ++k)
 	{
-		Output._attributes[k] = (V0._attributes[k] * w0 + V1._attributes[k] * w1 + V2._attributes[k] * w2) * Z;
+		Output._members[k] = (V0._members[k] * w0 + 
+							  V1._members[k] * w1 + 
+							  V2._members[k] * w2) * Z;
 	}
 
-	Output._attri_cnt = V0._attri_cnt;
+	Output._count = V0._count;
 }
 
 void FSR_Renderer::RasterizeTriangle(const FSR_Context& InContext, const FSRVertexShaderOutput& A, const FSRVertexShaderOutput& B, const FSRVertexShaderOutput& C)
@@ -254,12 +259,14 @@ void FSR_Renderer::RasterizeTriangle(const FSR_Context& InContext, const FSRVert
 	const FSRVertexShaderOutput* ABC[3] = { &A, &B, &C };
 	FSR_RasterizedVert screen[3];
 
+	// perspective divide
 	for (uint32_t i = 0; i < 3; ++i)
 	{
-		screen[i]._inv_w = 1.f / ABC[i]->_vertex.w;
-		screen[i]._ndc_pos.x = ABC[i]->_vertex.x * screen[i]._inv_w;
-		screen[i]._ndc_pos.y = ABC[i]->_vertex.y * screen[i]._inv_w;
-		screen[i]._ndc_pos.z = ABC[i]->_vertex.z * screen[i]._inv_w;
+		float inv_w = 1.f / ABC[i]->_vertex.w;
+		screen[i]._inv_w = inv_w;
+		screen[i]._ndc_pos.x = ABC[i]->_vertex.x * inv_w;
+		screen[i]._ndc_pos.y = ABC[i]->_vertex.y * inv_w;
+		screen[i]._ndc_pos.z = ABC[i]->_vertex.z * inv_w;
 		screen[i]._screen_pos = InContext.NdcToScreenPostion(screen[i]._ndc_pos);
 	}
 
@@ -293,10 +300,10 @@ void FSR_Renderer::RasterizeTriangle(const FSR_Context& InContext, const FSRVert
 	const FSR_RasterizedVert& SV1 = screen[iv1];
 	const FSR_RasterizedVert& SV2 = screen[iv2];
 
-	FSRPixelShaderInput VA0, VA1, VA2;
-	DivideVertexAttributesByW(*(ABC[iv0]), SV0._inv_w, VA0);
-	DivideVertexAttributesByW(*(ABC[iv1]), SV1._inv_w, VA1);
-	DivideVertexAttributesByW(*(ABC[iv2]), SV2._inv_w, VA2);
+	FSRVertexAttributes VA0, VA1, VA2;
+	DivideVertexAttributesByW(ABC[iv0]->_attributes, SV0._inv_w, VA0);
+	DivideVertexAttributesByW(ABC[iv1]->_attributes, SV1._inv_w, VA1);
+	DivideVertexAttributesByW(ABC[iv2]->_attributes, SV2._inv_w, VA2);
 
 	const int32_t X0 = static_cast<int32_t>(floor(bbox._min.x));
 	const int32_t Y0 = static_cast<int32_t>(floor(bbox._min.y));
@@ -346,10 +353,9 @@ void FSR_Renderer::RasterizeTriangle(const FSR_Context& InContext, const FSRVert
 			}
 
 			// perspective correct interpolate
-			float oneOverE012 = 1.f / E012;
-			float w0 = E12 * oneOverE012;
-			float w1 = E20 * oneOverE012;
-			float w2 = E01 * oneOverE012;
+			float w0 = E12 / E012;
+			float w1 = E20 / E012;
+			float w2 = E01 / E012;
 
 			float depth = w0 * SV0._screen_pos.z + w1 * SV1._screen_pos.z + w2 * SV2._screen_pos.z;
 			float Z = 1.f / (w0 * SV0._inv_w + w1 * SV1._inv_w + w2 * SV2._inv_w);
@@ -360,7 +366,7 @@ void FSR_Renderer::RasterizeTriangle(const FSR_Context& InContext, const FSRVert
 			}
 
 			// attributes
-			InterpolateVertexAttributes(VA0, w0, VA1, w1, VA2, w2, Z, PixelInput);
+			InterpolateVertexAttributes(VA0, w0, VA1, w1, VA2, w2, Z, PixelInput._attributes);
 			InContext._ps->Process(InContext, PixelInput, PixelOutput);
 			for (uint32_t k=0; k<PixelOutput._color_cnt; ++k)
 			{
