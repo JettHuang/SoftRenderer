@@ -17,7 +17,8 @@ public:
 	static void DrawTriangle(const FSR_Context &InContext, const FSRVertex &InA, const FSRVertex&InB, const FSRVertex&InC);
 
 	// draw a mesh
-	static void DrawMesh(const FSR_Context& InContext, const FSR_Mesh &InMesh);
+	// NOTE: this function will modify context's material.
+	static void DrawMesh(FSR_Context& InContext, const FSR_Mesh &InMesh);
 
 protected:
 	static uint32_t ClipAgainstNearPlane(const FSRVertexShaderOutput InVerts[3], FSRVertexShaderOutput OutVerts[4]);

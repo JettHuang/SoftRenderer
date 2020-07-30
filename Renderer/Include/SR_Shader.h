@@ -8,6 +8,8 @@
 #include <cstdlib> // size_t
 #include <cassert>
 #include <memory>
+#include <glm.hpp>
+#include <gtx/fast_square_root.hpp>
 
 #include "SR_Common.h"
 
@@ -42,6 +44,19 @@ public:
 };
 
 class FSR_SimplePixelShader : public FSR_PixelShader
+{
+public:
+	virtual void Process(const FSR_Context& InContext, const FSRPixelShaderInput& Input, FSRPixelShaderOutput& Output) override;
+};
+
+// diffuse mesh vs & ps
+class FSR_SimpleMeshVertexShader : public FSR_VertexShader
+{
+public:
+	virtual void Process(const FSR_Context& InContext, const FSRVertexShaderInput& Input, FSRVertexShaderOutput& Output) override;
+};
+
+class FSR_SimpleMeshPixelShader : public FSR_PixelShader
 {
 public:
 	virtual void Process(const FSR_Context& InContext, const FSRPixelShaderInput& Input, FSRPixelShaderOutput& Output) override;

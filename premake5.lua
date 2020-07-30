@@ -43,7 +43,24 @@ project "Renderer"
 		"./ThirdParty/tinyobjloader",
 		"./Renderer/Include"
     }
+	
+	vpaths {
+		["stb"] = {
+			"./ThirdParty/stb/*.h",
+			"./ThirdParty/stb/*.cc"
+		},
+		["tinyobjloader"] = {
+			"./ThirdParty/tinyobjloader/*.h",
+			"./ThirdParty/tinyobjloader/*.cc"
+		}
+	}
+	
     files {
+		"./ThirdParty/stb/*.h",
+		"./ThirdParty/stb/*.cc",
+		"./ThirdParty/tinyobjloader/*.h",
+		"./ThirdParty/tinyobjloader/*.cc",
+		
         "./Renderer/Include/*.h",
 		"./Renderer/Source/*.cc"
     }
@@ -62,6 +79,7 @@ project "Viewer"
 		"./ThirdParty/tinyobjloader",
 		"./Renderer/Include"
     }
+	
     files {
 		"./Viewer/Include/*.h",
 		"./Viewer/Source/*.cc"

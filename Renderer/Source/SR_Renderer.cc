@@ -382,8 +382,28 @@ void FSR_Renderer::RasterizeTriangle(const FSR_Context& InContext, const FSRVert
 }
 
 // draw a mesh
-void FSR_Renderer::DrawMesh(const FSR_Context& InContext, const FSR_Mesh& InMesh)
+void FSR_Renderer::DrawMesh(FSR_Context& InContext, const FSR_Mesh& InMesh)
 {
+	const std::vector<FSRVertex> &VertexBuffer = InMesh._VertexBuffer;
+	const std::vector<uint32_t>& IndexBuffer = InMesh._IndexBuffer;;
+	const std::vector<std::shared_ptr<FSR_Material>>& Materials = InMesh._Materials;
 
+	for (uint32_t k=0; k<InMesh._SubMeshes.size(); ++k)
+	{
+		const FSR_Mesh::FSR_SubMesh& subMesh = InMesh._SubMeshes[k];
+
+		InContext.SetMaterial(Materials[subMesh._MaterialIndex]);
+		// draw triangles
+		const uint32_t triangleCount = subMesh._IndexCount / 3;
+		for (uint32_t idx = 0; idx < triangleCount; idx++)
+		{
+			const FSRVertex& V0 = VertexBuffer[IndexBuffer[subMesh._IndexOffset + (idx * 3)]];
+			const FSRVertex& V1 = VertexBuffer[IndexBuffer[subMesh._IndexOffset + (idx * 3 + 1)]];
+			const FSRVertex& V2 = VertexBuffer[IndexBuffer[subMesh._IndexOffset + (idx * 3 + 2)]];
+
+			DrawTriangle(InContext, V0, V1, V2);
+		}
+
+	} // end for k
 }
 

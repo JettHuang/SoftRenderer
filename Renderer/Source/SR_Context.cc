@@ -34,6 +34,7 @@ FSR_Context::FSR_Context()
 	: _viewport_rect(glm::vec2(0,0), glm::vec2(1,1))
 	, _modelview(1.f)
 	, _modelview_inv(1.f)
+	, _modelview_inv_t(1.f)
 	, _projection(1.f)
 	, _projection_inv(1.f)
 	, _front_face(EFrontFace::FACE_CW)
@@ -89,6 +90,7 @@ void FSR_Context::SetModelViewMatrix(const glm::mat4x4& InModelView)
 {
 	_modelview = InModelView;
 	_modelview_inv = glm::inverse(InModelView);
+	_modelview_inv_t = glm::transpose(_modelview_inv);
 }
 
 // set projection matrix

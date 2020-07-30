@@ -2,6 +2,7 @@
 //		buffer 2d.
 //
 
+#include "stb_image.h"
 #include "SR_Buffer2D.h"
 
 
@@ -477,8 +478,9 @@ void FSR_Buffer2D::Clear(float R, float G, float B, float A)
 // sample element
 bool FSR_Buffer2D::Sample2DNearest(float u, float v, float& R, float& G, float& B, float& A)
 {
-	u = glm::clamp<float>(u, 0.f, 1.f);
-	v = glm::clamp<float>(v, 0.f, 1.f);
+	u = u - floor(u);
+	v = v - floor(v);
+
 	uint32_t cx = glm::clamp<int32_t>(int32_t(_w * u), 0, _w-1);
 	uint32_t cy = glm::clamp<int32_t>(int32_t(_h * v), 0, _h-1);
 
@@ -487,8 +489,8 @@ bool FSR_Buffer2D::Sample2DNearest(float u, float v, float& R, float& G, float& 
 
 bool FSR_Buffer2D::Sample2DLinear(float u, float v, float& R, float& G, float& B, float& A)
 {
-	u = glm::clamp<float>(u, 0.f, 1.f);
-	v = glm::clamp<float>(v, 0.f, 1.f);
+	u = u - floor(u);
+	v = v - floor(v);
 	
 	float cx0 = _w * u;
 	if (cx0 >= _w) { cx0 -= _w; }
@@ -533,3 +535,38 @@ bool FSR_Buffer2D::Sample2DLinear(float u, float v, float& R, float& G, float& B
 	return true;
 }
 
+// load & save
+std::shared_ptr<FSR_Buffer2D> FSR_Buffer2D::LoadImageFile(const char* InFileName)
+{
+	int w, h, channel;
+
+	stbi_uc* pData = stbi_load(InFileName, &w, &h, &channel, 0);
+	if (!pData) {
+		return nullptr;
+	}
+
+	EPixelFormat PixelFormat;
+	if (channel == 3) {
+		PixelFormat = EPixelFormat::PIXEL_FORMAT_RGB888;
+	}
+	else if (channel == 4) {
+		PixelFormat = EPixelFormat::PIXEL_FORMAT_RGBA8888;
+	}
+	else {
+		return nullptr;
+	}
+
+	std::shared_ptr<FSR_Buffer2D> Buffer2d = std::make_shared<FSR_Buffer2D>(w, h, PixelFormat);
+	assert(Buffer2d);
+
+	uint8_t *pDst = Buffer2d->_buffer->data();
+	uint32_t nBytes = Buffer2d->_buffer->length();
+	memcpy(pDst, pData, nBytes);
+
+	return Buffer2d;
+}
+
+bool FSR_Buffer2D::SaveImageFile(const std::shared_ptr<FSR_Buffer2D> InTexture, const char* InFileName)
+{
+	return false;
+}

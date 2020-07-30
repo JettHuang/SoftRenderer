@@ -41,6 +41,11 @@ public:
 	// sample element
 	bool Sample2DNearest(float u, float v, float& R, float& G, float& B, float& A);
 	bool Sample2DLinear(float u, float v, float& R, float& G, float& B, float& A);
+
+	// load & save
+	static std::shared_ptr<FSR_Buffer2D> LoadImageFile(const char* InFileName);
+	static bool SaveImageFile(const std::shared_ptr<FSR_Buffer2D> InTexture, const char* InFileName);
+
 protected:
 	inline uint32_t GetElementOffset(uint32_t cx, uint32_t cy) const
 	{

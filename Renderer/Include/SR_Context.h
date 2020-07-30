@@ -59,6 +59,7 @@ public:
 	
 	glm::mat4x4 _modelview;
 	glm::mat4x4 _modelview_inv;
+	glm::mat3x3	_modelview_inv_t;
 	glm::mat4x4 _projection;
 	glm::mat4x4 _projection_inv;
 
