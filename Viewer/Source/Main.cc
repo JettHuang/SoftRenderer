@@ -59,7 +59,7 @@ void Example_SingleTriangle()
 	ctx.SetShader(vs, ps);
 	ctx.ClearRenderTarget(glm::vec4(0, 0, 0, 0));
 
-	FSRVertex v0, v1, v2;
+	FSRVertex v0, v1, v2, v3;
 
 	v0._vertex = glm::vec3(-0.5, -0.5, 1.0);
 	v0._attributes._members[0] = glm::vec3(1.0, 0.0, 0.0);
@@ -73,7 +73,12 @@ void Example_SingleTriangle()
 	v2._attributes._members[0] = glm::vec3(0.0, 0.0, 1.0);
 	v2._attributes._count = 1;
 
+	v3._vertex = glm::vec3(0.5, -0.5, 1.0);
+	v3._attributes._members[0] = glm::vec3(0.0, 1.0, 0.0);
+	v3._attributes._count = 1;
+
 	FSR_Renderer::DrawTriangle(ctx, v0, v1, v2);
+	FSR_Renderer::DrawTriangle(ctx, v0, v2, v3);
 
 	OuputPPM(ctx.GetColorBuffer(0));
 }
@@ -246,7 +251,7 @@ void Example_Mesh_Scene()
 
 int main()
 {
-	//Example_SingleTriangle();
+	Example_SingleTriangle();
 	//Example_Multi_Cubes();
-	Example_Mesh_Scene();
+	//Example_Mesh_Scene();
 }
