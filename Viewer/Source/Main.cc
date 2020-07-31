@@ -182,6 +182,9 @@ void Example_Multi_Cubes()
 	std::vector<glm::mat4> objects;
 	InitializeSceneObjects(objects);
 
+	FPerformanceCounter PerfCounter;
+	PerfCounter.StartPerf();
+
 	// Loop over objects in the scene
 	FSRVertex v0, v1, v2;
 	v0._attributes._count = 1;
@@ -207,6 +210,8 @@ void Example_Multi_Cubes()
 			FSR_Renderer::DrawTriangle(ctx, v0, v1, v2);
 		} // end for idx
 	} // end for n
+
+	std::cerr << " Draw Cubes Elapse microseconds: " << PerfCounter.EndPerf() << std::endl;
 
 	OuputPPM(ctx.GetColorBuffer(0));
 

@@ -279,9 +279,10 @@ static void RasterizeTriangle(const FSR_Context& InContext, const FSRVertexShade
 	glm::vec3 P(0, 0, 0);
 	FSRPixelShaderInput PixelInput;
 	FSRPixelShaderOutput PixelOutput;
-	for (int32_t cx = X0; cx < X1; ++cx)
+	
+	for (int32_t cy = Y0; cy < Y1; ++cy)
 	{
-		for (int32_t cy = Y0; cy < Y1; ++cy)
+		for (int32_t cx = X0; cx < X1; ++cx)
 		{
 			P.x = cx + 0.5f;
 			P.y = cy + 0.5f;
@@ -372,8 +373,8 @@ static void RasterizeTriangle(const FSR_Context& InContext, const FSRVertexShade
 			Stats->_color_write_count += PixelOutput._color_cnt;
 			Stats->_color_total_microseconds += elapse_microseconds;
 #endif
-		} //end cy
-	} // end cx
+		} //end cx
+	} // end cy
 }
 
 //////////////////////////////////////////////////////////////////////////
