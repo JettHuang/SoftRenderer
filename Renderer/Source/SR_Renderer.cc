@@ -66,22 +66,6 @@
 #include "SR_Renderer.h"
 
 
-static const glm::vec4 kLeftPlane(1,0,0,1);
-static const glm::vec4 kRightPlane(-1,0,0,1);
-static const glm::vec4 kFrontPlane(0,0,1,1);
-static const glm::vec4 kBackPlane(0,0,-1,1);
-static const glm::vec4 kTopPlane(0,-1,0,1);
-static const glm::vec4 kBottomPlane(0,1,0,1);
-static const glm::vec4* const kFrustumPlanes[] =
-{
-	&kLeftPlane,
-	&kRightPlane,
-	&kFrontPlane,
-	&kBackPlane,
-	&kTopPlane,
-	&kBottomPlane
-};
-
 inline void InterpolateVertex_Linear(const FSRVertexShaderOutput& P1, const FSRVertexShaderOutput& P2, float t, FSRVertexShaderOutput& OutVert)
 {
 	assert(P1._attributes._count == P2._attributes._count);
@@ -97,14 +81,14 @@ inline void InterpolateVertex_Linear(const FSRVertexShaderOutput& P1, const FSRV
 static uint32_t ClipAgainstNearPlane(const FSRVertexShaderOutput InVerts[3], FSRVertexShaderOutput OutVerts[4])
 {
 	const FSRVertexShaderOutput* P1 = &InVerts[2];
-	float D1 = glm::dot(P1->_vertex, kFrontPlane);
+	float D1 = P1->_vertex.z + P1->_vertex.w;
 
 	uint32_t newVerts = 0;
 	float t = 0.f;
 	for (int i = 0; i < 3; ++i)
 	{
 		const FSRVertexShaderOutput* P2 = &InVerts[i];
-		float D2 = glm::dot(P2->_vertex, kFrontPlane);
+		float D2 = P2->_vertex.z + P2->_vertex.w;
 
 		if (D2 >= 0.f) // P2 is at the front of plane
 		{
@@ -152,44 +136,55 @@ struct FSR_RasterizedVert
 
 static bool intersect(const FSR_Rectangle& InA, const FSR_Rectangle& InB, FSR_Rectangle& Out)
 {
-	float minx = std::max(InA._min.x, InB._min.x);
-	float miny = std::max(InA._min.y, InB._min.y);
-	float maxx = std::min(InA._max.x, InB._max.x);
-	float maxy = std::min(InA._max.y, InB._max.y);
+	float minx = std::max(InA._minx, InB._minx);
+	float miny = std::max(InA._miny, InB._miny);
+	float maxx = std::min(InA._maxx, InB._maxx);
+	float maxy = std::min(InA._maxy, InB._maxy);
 
-	if (minx >= maxx || miny >= maxy)
-	{
+	if (minx >= maxx || miny >= maxy) {
 		return false;
 	}
 
-	Out._min = glm::vec2(minx, miny);
-	Out._max = glm::vec2(maxx, maxy);
+	Out._minx = minx;
+	Out._miny = miny;
+	Out._maxx = maxx;
+	Out._maxy = maxy;
 	return true;
 }
 
 // edge function
 inline float EdgeFunction(const glm::vec3& A, const glm::vec3& B, const glm::vec3& P)
 {
-	float E = (P.x - A.x) * (B.y - A.y) - (P.y - A.y) * (B.x - A.x);
-	return E;
+	return ((P.x - A.x) * (B.y - A.y) - (P.y - A.y) * (B.x - A.x));
 }
 
-inline FSR_Rectangle BoundingboxOfTriangle(const FSR_RasterizedVert Verts[3])
+inline FSR_Rectangle BoundingboxOfTriangle(const glm::vec3& V0, const glm::vec3& V1, const glm::vec3& V2)
 {
-	float x0 = Verts[0]._screen_pos.x;
-	float y0 = Verts[0]._screen_pos.y;
-	float x1 = Verts[1]._screen_pos.x;
-	float y1 = Verts[1]._screen_pos.y;
-	float x2 = Verts[2]._screen_pos.x;
-	float y2 = Verts[2]._screen_pos.y;
+	float minx = V0.x, miny = V0.y, maxx = V0.x, maxy = V0.y;
 
-	FSR_Rectangle rect;
-	rect._min.x = std::min(std::min(x0, x1), x2);
-	rect._min.y = std::min(std::min(y0, y1), y2);
-	rect._max.x = std::max(std::max(x0, x1), x2);
-	rect._max.y = std::max(std::max(y0, y1), y2);
+	if (V1.x < minx) {
+		minx = V1.x; 
+	} else if (V1.x > maxx) { 
+		maxx = V1.x; 
+	}
+	if (V1.y < miny) { 
+		miny = V1.y; 
+	} else if (V1.y > maxy) {
+		maxy = V1.y; 
+	}
 
-	return rect;
+	if (V2.x < minx) { 
+		minx = V2.x; 
+	} else if (V2.x > maxx) { 
+		maxx = V2.x; 
+	}
+	if (V2.y < miny) { 
+		miny = V2.y; 
+	} else if (V2.y > maxy) { 
+		maxy = V2.y; 
+	}
+	
+	return FSR_Rectangle(minx, miny, maxx, maxy);
 }
 
 
@@ -241,7 +236,7 @@ static void RasterizeTriangle(const FSR_Context& InContext, const FSRVertexShade
 	}
 
 	uint32_t iv0 = 0, iv1 = 1, iv2 = 2;
-	float E012 = EdgeFunction(screen[iv0]._screen_pos, screen[iv1]._screen_pos, screen[iv2]._screen_pos);
+	float E012 = EdgeFunction(screen[0]._screen_pos, screen[1]._screen_pos, screen[2]._screen_pos);
 	if (E012 > -1.f && E012 < 1.f)
 	{
 		return; // DISCARD!
@@ -261,7 +256,8 @@ static void RasterizeTriangle(const FSR_Context& InContext, const FSRVertexShade
 	}
 
 	FSR_Rectangle bbox;
-	if (!intersect(BoundingboxOfTriangle(screen), InContext.ViewportRectangle(), bbox))
+	const FSR_Rectangle bbox_triangle = BoundingboxOfTriangle(screen[0]._screen_pos, screen[1]._screen_pos, screen[2]._screen_pos);
+	if (!intersect(bbox_triangle, InContext.ViewportRectangle(), bbox))
 	{
 		return; // DISCARD!
 	}
@@ -275,10 +271,10 @@ static void RasterizeTriangle(const FSR_Context& InContext, const FSRVertexShade
 	DivideVertexAttributesByW(ABC[iv1]->_attributes, SV1._inv_w, VA1);
 	DivideVertexAttributesByW(ABC[iv2]->_attributes, SV2._inv_w, VA2);
 
-	const int32_t X0 = static_cast<int32_t>(floor(bbox._min.x));
-	const int32_t Y0 = static_cast<int32_t>(floor(bbox._min.y));
-	const int32_t X1 = static_cast<int32_t>(ceilf(bbox._max.x));
-	const int32_t Y1 = static_cast<int32_t>(ceilf(bbox._max.y));
+	const int32_t X0 = static_cast<int32_t>(floor(bbox._minx));
+	const int32_t Y0 = static_cast<int32_t>(floor(bbox._miny));
+	const int32_t X1 = static_cast<int32_t>(ceilf(bbox._maxx));
+	const int32_t Y1 = static_cast<int32_t>(ceilf(bbox._maxy));
 
 	glm::vec3 P(0, 0, 0);
 	FSRPixelShaderInput PixelInput;
@@ -382,6 +378,36 @@ static void RasterizeTriangle(const FSR_Context& InContext, const FSRVertexShade
 
 //////////////////////////////////////////////////////////////////////////
 
+inline bool IsOnNegtiveSideOf_LeftPlane(const glm::vec4& V0, const glm::vec4& V1, const glm::vec4& V2)
+{
+	return ((V0.x + V0.w) < 0.f) && ((V1.x + V1.w) < 0.f) && ((V2.x + V2.w) < 0.f);
+}
+
+inline bool IsOnNegtiveSideOf_RightPlane(const glm::vec4& V0, const glm::vec4& V1, const glm::vec4& V2)
+{
+	return ((V0.w - V0.x) < 0.f) && ((V1.w - V1.x) < 0.f) && ((V2.w - V2.x) < 0.f);
+}
+
+inline bool IsOnNegtiveSideOf_FrontPlane(const glm::vec4& V0, const glm::vec4& V1, const glm::vec4& V2)
+{
+	return ((V0.z + V0.w) < 0.f) && ((V1.z + V1.w) < 0.f) && ((V2.z + V2.w) < 0.f);
+}
+
+inline bool IsOnNegtiveSideOf_BackPlane(const glm::vec4& V0, const glm::vec4& V1, const glm::vec4& V2)
+{
+	return ((V0.w - V0.z) < 0.f) && ((V1.w - V1.z) < 0.f) && ((V2.w - V2.z) < 0.f);
+}
+
+inline bool IsOnNegtiveSideOf_TopPlane(const glm::vec4& V0, const glm::vec4& V1, const glm::vec4& V2)
+{
+	return ((V0.w - V0.y) < 0.f) && ((V1.w - V1.y) < 0.f) && ((V2.w - V2.y) < 0.f);
+}
+
+inline bool IsOnNegtiveSideOf_BotPlane(const glm::vec4& V0, const glm::vec4& V1, const glm::vec4& V2)
+{
+	return ((V0.w + V0.y) < 0.f) && ((V1.w + V1.y) < 0.f) && ((V2.w + V2.y) < 0.f);
+}
+
 // draw a triangle
 void FSR_Renderer::DrawTriangle(const FSR_Context& InContext, const FSRVertex& InA, const FSRVertex& InB, const FSRVertex& InC)
 {
@@ -413,19 +439,24 @@ void FSR_Renderer::DrawTriangle(const FSR_Context& InContext, const FSRVertex& I
 #if SR_ENABLE_PERFORMACE_STAT
 	PerfCounter.StartPerf();
 #endif
-	// clipping
+	// frustum culling
 	bool bOutsideOfVolume = false;
-	for (uint32_t i=0; i< SR_ARRAY_COUNT(kFrustumPlanes) && !bOutsideOfVolume; ++i)
 	{
-		const glm::vec4* Plane = kFrustumPlanes[i];
-		bOutsideOfVolume = (glm::dot(*Plane, Verts[0]._vertex) < 0.f) &&
-						   (glm::dot(*Plane, Verts[1]._vertex) < 0.f) &&
-						   (glm::dot(*Plane, Verts[2]._vertex) < 0.f);
+		const glm::vec4& homogeneous_v0 = Verts[0]._vertex;
+		const glm::vec4& homogeneous_v1 = Verts[1]._vertex;
+		const glm::vec4& homogeneous_v2 = Verts[2]._vertex;
+
+		bOutsideOfVolume =
+			IsOnNegtiveSideOf_LeftPlane(homogeneous_v0, homogeneous_v1, homogeneous_v2) ||
+			IsOnNegtiveSideOf_RightPlane(homogeneous_v0, homogeneous_v1, homogeneous_v2) ||
+			IsOnNegtiveSideOf_FrontPlane(homogeneous_v0, homogeneous_v1, homogeneous_v2) ||
+			IsOnNegtiveSideOf_BackPlane(homogeneous_v0, homogeneous_v1, homogeneous_v2) ||
+			IsOnNegtiveSideOf_TopPlane(homogeneous_v0, homogeneous_v1, homogeneous_v2) ||
+			IsOnNegtiveSideOf_BotPlane(homogeneous_v0, homogeneous_v1, homogeneous_v2);
 	}
 
 #if SR_ENABLE_PERFORMACE_STAT
 	elapse_microseconds = PerfCounter.EndPerf();
-
 	Stats->_check_inside_frustum_count++;
 	Stats->_check_inside_frustum_microseconds += elapse_microseconds;
 #endif

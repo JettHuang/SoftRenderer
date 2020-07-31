@@ -31,7 +31,7 @@ uint32_t LookupPixelFormatBytes(EPixelFormat InFormat)
 }
 
 FSR_Context::FSR_Context()
-	: _viewport_rect(glm::vec2(0,0), glm::vec2(1,1))
+	: _viewport_rect(0, 0, 1, 1)
 	, _modelview(1.f)
 	, _modelview_inv(1.f)
 	, _modelview_inv_t(1.f)
@@ -81,10 +81,10 @@ void FSR_Context::SetCullFaceMode(EFrontFace InMode)
 
 void FSR_Context::SetViewport(uint32_t x, uint32_t y, uint32_t w, uint32_t h)
 {
-	_viewport_rect._min.x = static_cast<float>(x);
-	_viewport_rect._min.y = static_cast<float>(y);
-	_viewport_rect._max.x = static_cast<float>(x + w);
-	_viewport_rect._max.y = static_cast<float>(y + h);
+	_viewport_rect._minx = static_cast<float>(x);
+	_viewport_rect._miny = static_cast<float>(y);
+	_viewport_rect._maxx = static_cast<float>(x + w);
+	_viewport_rect._maxy = static_cast<float>(y + h);
 }
 
 void FSR_Context::SetModelViewMatrix(const glm::mat4x4& InModelView)
@@ -120,8 +120,8 @@ glm::vec3 FSR_Context::NdcToScreenPostion(const glm::vec3& ndc) const
 {
 	glm::vec3 screen_pos;
 
-	screen_pos.x = glm::mix(_viewport_rect._min.x, _viewport_rect._max.x, (ndc.x + 1.0f) * 0.5f);
-	screen_pos.y = glm::mix(_viewport_rect._min.y, _viewport_rect._max.y, (ndc.y + 1.0f) * 0.5f);
+	screen_pos.x = glm::mix(_viewport_rect._minx, _viewport_rect._maxx, (ndc.x + 1.0f) * 0.5f);
+	screen_pos.y = glm::mix(_viewport_rect._miny, _viewport_rect._maxy, (ndc.y + 1.0f) * 0.5f);
 	screen_pos.z = (ndc.z + 1.0f) * 0.5f;
 	return screen_pos;
 }

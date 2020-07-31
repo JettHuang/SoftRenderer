@@ -51,17 +51,17 @@ enum class EFrontFace
 // rectangle
 struct FSR_Rectangle
 {
-	glm::vec2	_min;
-	glm::vec2	_max;
+	float	_minx;
+	float	_miny;
+	float	_maxx;
+	float	_maxy;
 
-	FSR_Rectangle()
-		: _min(0,0)
-		, _max(0,0)
-	{}
-
-	FSR_Rectangle(const glm::vec2& InMin, const glm::vec2& InMax)
-		: _min(InMin)
-		, _max(InMax)
+	FSR_Rectangle() {}
+	FSR_Rectangle(float minx, float miny, float maxx, float maxy)
+		: _minx(minx)
+		, _miny(miny)
+		, _maxx(maxx)
+		, _maxy(maxy)
 	{}
 };
 
