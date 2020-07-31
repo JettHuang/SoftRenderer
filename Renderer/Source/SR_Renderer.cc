@@ -277,15 +277,15 @@ static void RasterizeTriangle(const FSR_Context& InContext, const FSRVertexShade
 
 	const int32_t X0 = static_cast<int32_t>(floor(bbox._min.x));
 	const int32_t Y0 = static_cast<int32_t>(floor(bbox._min.y));
-	const int32_t X1 = static_cast<int32_t>(floor(bbox._max.x));
-	const int32_t Y1 = static_cast<int32_t>(floor(bbox._max.y));
+	const int32_t X1 = static_cast<int32_t>(ceilf(bbox._max.x));
+	const int32_t Y1 = static_cast<int32_t>(ceilf(bbox._max.y));
 
 	glm::vec3 P(0, 0, 0);
 	FSRPixelShaderInput PixelInput;
 	FSRPixelShaderOutput PixelOutput;
-	for (int32_t cx = X0; cx <= X1; ++cx)
+	for (int32_t cx = X0; cx < X1; ++cx)
 	{
-		for (int32_t cy = Y0; cy <= Y1; ++cy)
+		for (int32_t cy = Y0; cy < Y1; ++cy)
 		{
 			P.x = cx + 0.5f;
 			P.y = cy + 0.5f;
@@ -364,7 +364,7 @@ static void RasterizeTriangle(const FSR_Context& InContext, const FSRVertexShade
 			for (uint32_t k = 0; k < PixelOutput._color_cnt; ++k)
 			{
 				const std::shared_ptr<FSR_Texture2D>& rt = InContext._rt_colors[k];
-				if (rt && rt->IsValid())
+				if (rt)
 				{
 					const glm::vec4& color = PixelOutput._colors[k];
 					rt->Write(cx, cy, color.r, color.g, color.b, color.a);

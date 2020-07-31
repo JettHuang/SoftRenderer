@@ -12,4 +12,6 @@
 #include "SR_Mesh.h"
 #include "SR_Renderer.h"
 #include "SR_Shader.h"
+#include "SR_Performance.h"
+
 

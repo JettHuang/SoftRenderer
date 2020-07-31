@@ -49,11 +49,11 @@ FSR_Context::~FSR_Context()
 // set render target
 void FSR_Context::SetRenderTarget(uint32_t w, uint32_t h, uint32_t nCount)
 {
-	_rt_depth = std::make_shared<FSR_DepthBuffer>(w, h, EPixelFormat::PIXEL_FORMAT_F32);
+	_rt_depth = FSR_Buffer2D_Helper::CreateBuffer2D(w, h, EPixelFormat::PIXEL_FORMAT_F32);
 	nCount = std::min<uint32_t>(nCount, MAX_MRT_COUNT);
 	for (uint32_t i=0; i<nCount; ++i)
 	{
-		_rt_colors[i] = std::make_shared<FSR_Texture2D>(w, h, EPixelFormat::PIXEL_FORMAT_RGBAF32);
+		_rt_colors[i] = FSR_Buffer2D_Helper::CreateBuffer2D(w, h, EPixelFormat::PIXEL_FORMAT_RGBAF32);
 	}
 }
 
@@ -128,7 +128,7 @@ glm::vec3 FSR_Context::NdcToScreenPostion(const glm::vec3& ndc) const
 
 bool FSR_Context::DepthTestAndOverride(uint32_t cx, uint32_t cy, float InDepth) const
 {
-	if (_rt_depth && _rt_depth->IsValid())
+	if (_rt_depth)
 	{
 		float PrevDepth = 0.f;
 		_rt_depth->Read(cx, cy, PrevDepth);

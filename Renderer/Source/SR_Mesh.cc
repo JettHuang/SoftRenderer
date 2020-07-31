@@ -43,7 +43,7 @@ bool FSR_Mesh::LoadFromObjFile(const char* fileName, const char* mtlBaseDir)
 
 				if (textures.find(diffuseTexName) == textures.end())
 				{
-					std::shared_ptr<FSR_Texture2D> diffuseTex = FSR_Texture2D::LoadImageFile((mtlBaseDir + diffuseTexName).c_str());
+					std::shared_ptr<FSR_Texture2D> diffuseTex = FSR_Buffer2D_Helper::LoadImageFile((mtlBaseDir + diffuseTexName).c_str());
 					assert(diffuseTex != nullptr && "Failed to load image!");
 
 					textures[diffuseTexName] = diffuseTex;

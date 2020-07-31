@@ -14,7 +14,7 @@ void OuputPPM(const std::shared_ptr<FSR_Buffer2D>& InBuffer2D)
 {
 	int32_t image_width, image_height;
 
-	if (!InBuffer2D || !InBuffer2D->IsValid())
+	if (!InBuffer2D)
 	{
 		std::cerr << "OutputPPM failed. buffer2d is null" << std::endl;
 		return;
@@ -250,7 +250,13 @@ void Example_Mesh_Scene()
 		std::cerr << "Load .obj scene failed." << std::endl;
 	}
 
+	std::cerr << "Start Draw Mesh" << std::endl;
+
+	FPerformanceCounter PerfCounter;
+	PerfCounter.StartPerf();
 	FSR_Renderer::DrawMesh(ctx, *SceneMesh);
+
+	std::cerr << " Draw Mesh Elapse microseconds: " << PerfCounter.EndPerf() << std::endl;
 
 	// ouput image
 	OuputPPM(ctx.GetColorBuffer(0));
