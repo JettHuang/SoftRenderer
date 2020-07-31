@@ -4,13 +4,7 @@
 
 #pragma once
 
-#include <cstdint> // uint32_t
-#include <cstdlib> // size_t
-#include <cassert>
-#include <memory>
-
 #include "SR_Buffer.h"
-#include "SR_Common.h"
 
 
 class FSR_Buffer2D

@@ -11,6 +11,8 @@
 #include <algorithm>
 
 #include <glm.hpp>
+#include <gtc/matrix_transform.hpp>
+#include <gtx/fast_square_root.hpp>
 
 
 #define SR_INVALID_INDEX		(-1)

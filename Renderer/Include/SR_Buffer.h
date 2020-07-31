@@ -4,9 +4,7 @@
 
 #pragma once
 
-#include <cstdint> // uint32_t
-#include <cstdlib> // size_t
-#include <cassert>
+#include "SR_Common.h"
 
 
 class FSR_Buffer

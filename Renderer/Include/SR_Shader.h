@@ -4,13 +4,6 @@
 
 #pragma once
 
-#include <cstdint> // uint32_t
-#include <cstdlib> // size_t
-#include <cassert>
-#include <memory>
-#include <glm.hpp>
-#include <gtx/fast_square_root.hpp>
-
 #include "SR_Common.h"
 
 

@@ -1,6 +1,10 @@
 # AnotherSoftRasterizeRender
 Another Simple CPU Rasterize Renderer.  the old one is MinOpenGL https://github.com/JettHuang/MinOpenGL
 
+# How to Build
+> premake5.exe vs2019
+
+# Snapshots
 1. orthogonal projection triangle
 ![example triangle](https://github.com/JettHuang/AnotherSoftRasterizeRender/blob/master/Triangle.jpg)
 

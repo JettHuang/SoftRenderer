@@ -4,11 +4,7 @@
 
 #pragma once
 
-#include <cstdint> // uint32_t
-#include <cstdlib> // size_t
-#include <cassert>
 #include <vector>
-
 #include "SR_Common.h"
 #include "SR_Material.h"
 

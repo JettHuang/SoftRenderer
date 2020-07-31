@@ -4,7 +4,6 @@
 
 #include <iostream>
 #include <vector>
-#include <gtc/matrix_transform.hpp>
 #include "SR_Headers.h"
 
 
