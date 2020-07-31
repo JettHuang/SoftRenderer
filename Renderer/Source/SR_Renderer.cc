@@ -63,7 +63,6 @@
 */
 
 #include <algorithm>
-
 #include "SR_Renderer.h"
 
 
@@ -83,55 +82,32 @@ static const glm::vec4* const kFrustumPlanes[] =
 	&kBottomPlane
 };
 
-// draw a triangle
-void FSR_Renderer::DrawTriangle(const FSR_Context& InContext, const FSRVertex& InA, const FSRVertex& InB, const FSRVertex& InC)
+inline void InterpolateVertex_Linear(const FSRVertexShaderOutput& P1, const FSRVertexShaderOutput& P2, float t, FSRVertexShaderOutput& OutVert)
 {
-	FSRVertexShaderOutput Verts[3];
+	assert(P1._attributes._count == P2._attributes._count);
 
-	InContext._vs->Process(InContext, InA, Verts[0]);
-	InContext._vs->Process(InContext, InB, Verts[1]);
-	InContext._vs->Process(InContext, InC, Verts[2]);
-
-	// clipping
-	for (uint32_t i=0; i<sizeof(kFrustumPlanes)/sizeof(kFrustumPlanes[0]); ++i)
+	OutVert._vertex = glm::mix(P1._vertex, P2._vertex, t);
+	for (uint32_t i = 0; i < P1._attributes._count; i++)
 	{
-		const glm::vec4* Plane = kFrustumPlanes[i];
-		bool bOutside = (glm::dot(*Plane, Verts[0]._vertex) < 0.f) && 
-						(glm::dot(*Plane, Verts[1]._vertex) < 0.f) &&
-						(glm::dot(*Plane, Verts[2]._vertex) < 0.f);
-
-		if (bOutside) {
-			return; // Discard this triangle
-		}
+		OutVert._attributes._members[i] = glm::mix(P1._attributes._members[i], P2._attributes._members[i], t);
 	}
-
-	FSRVertexShaderOutput newVerts[4];
-	uint32_t verts_cnt = ClipAgainstNearPlane(Verts, newVerts);
-	if (verts_cnt == 3)
-	{
-		RasterizeTriangle(InContext, newVerts[0], newVerts[1], newVerts[2]);
-	}
-	else if (verts_cnt == 4)
-	{
-		RasterizeTriangle(InContext, newVerts[0], newVerts[1], newVerts[2]);
-		RasterizeTriangle(InContext, newVerts[2], newVerts[3], newVerts[0]);
-	}
+	OutVert._attributes._count = P1._attributes._count;
 }
 
-uint32_t FSR_Renderer::ClipAgainstNearPlane(const FSRVertexShaderOutput InVerts[3], FSRVertexShaderOutput OutVerts[4])
+static uint32_t ClipAgainstNearPlane(const FSRVertexShaderOutput InVerts[3], FSRVertexShaderOutput OutVerts[4])
 {
 	const FSRVertexShaderOutput* P1 = &InVerts[2];
 	float D1 = glm::dot(P1->_vertex, kFrontPlane);
 
 	uint32_t newVerts = 0;
 	float t = 0.f;
-	for (int i=0; i<3; ++i)
+	for (int i = 0; i < 3; ++i)
 	{
 		const FSRVertexShaderOutput* P2 = &InVerts[i];
 		float D2 = glm::dot(P2->_vertex, kFrontPlane);
 
 		if (D2 >= 0.f) // P2 is at the front of plane
-		{ 
+		{
 			if (D2 == 0.f || D1 >= 0.f) {
 				OutVerts[newVerts]._vertex = P2->_vertex;
 				OutVerts[newVerts]._attributes = P2->_attributes;
@@ -164,18 +140,6 @@ uint32_t FSR_Renderer::ClipAgainstNearPlane(const FSRVertexShaderOutput InVerts[
 	return newVerts;
 }
 
-void FSR_Renderer::InterpolateVertex_Linear(const FSRVertexShaderOutput& P1, const FSRVertexShaderOutput& P2, float t, FSRVertexShaderOutput& OutVert)
-{
-	assert(P1._attributes._count == P2._attributes._count);
-
-	OutVert._vertex = glm::mix(P1._vertex, P2._vertex, t);
-	for (uint32_t i = 0; i <P1._attributes._count; i++)
-	{
-		OutVert._attributes._members[i] = glm::mix(P1._attributes._members[i], P2._attributes._members[i], t);
-	}
-	OutVert._attributes._count = P1._attributes._count;
-}
-
 // https://www.scratchapixel.com/lessons/3d-basic-rendering/rasterization-practical-implementation/rasterization-stage
 // https://www.scratchapixel.com/lessons/3d-basic-rendering/rasterization-practical-implementation/visibility-problem-depth-buffer-depth-interpolation
 // https://www.scratchapixel.com/lessons/3d-basic-rendering/rasterization-practical-implementation/perspective-correct-interpolation-vertex-attributes
@@ -186,7 +150,7 @@ struct FSR_RasterizedVert
 	float		_inv_w;
 };
 
-static bool intersect(const FSR_Rectangle& InA, const FSR_Rectangle& InB, FSR_Rectangle &Out)
+static bool intersect(const FSR_Rectangle& InA, const FSR_Rectangle& InB, FSR_Rectangle& Out)
 {
 	float minx = std::max(InA._min.x, InB._min.x);
 	float miny = std::max(InA._min.y, InB._min.y);
@@ -204,7 +168,7 @@ static bool intersect(const FSR_Rectangle& InA, const FSR_Rectangle& InB, FSR_Re
 }
 
 // edge function
-inline float EdgeFunction(const glm::vec3 &A, const glm::vec3 &B, const glm::vec3 &P)
+inline float EdgeFunction(const glm::vec3& A, const glm::vec3& B, const glm::vec3& P)
 {
 	float E = (P.x - A.x) * (B.y - A.y) - (P.y - A.y) * (B.x - A.x);
 	return E;
@@ -224,7 +188,7 @@ inline FSR_Rectangle BoundingboxOfTriangle(const FSR_RasterizedVert Verts[3])
 	rect._min.y = std::min(std::min(y0, y1), y2);
 	rect._max.x = std::max(std::max(x0, x1), x2);
 	rect._max.y = std::max(std::max(y0, y1), y2);
-	
+
 	return rect;
 }
 
@@ -239,23 +203,29 @@ inline void DivideVertexAttributesByW(const FSRVertexAttributes& VInput, float I
 }
 
 inline void InterpolateVertexAttributes(const FSRVertexAttributes& V0, float w0,
-										const FSRVertexAttributes& V1, float w1,
-										const FSRVertexAttributes& V2, float w2,
-										float Z,
-										FSRVertexAttributes&Output)
+	const FSRVertexAttributes& V1, float w1,
+	const FSRVertexAttributes& V2, float w2,
+	float Z,
+	FSRVertexAttributes& Output)
 {
 	for (uint32_t k = 0; k < V0._count; ++k)
 	{
-		Output._members[k] = (V0._members[k] * w0 + 
-							  V1._members[k] * w1 + 
-							  V2._members[k] * w2) * Z;
+		Output._members[k] = (V0._members[k] * w0 +
+			V1._members[k] * w1 +
+			V2._members[k] * w2) * Z;
 	}
 
 	Output._count = V0._count;
 }
 
-void FSR_Renderer::RasterizeTriangle(const FSR_Context& InContext, const FSRVertexShaderOutput& A, const FSRVertexShaderOutput& B, const FSRVertexShaderOutput& C)
+static void RasterizeTriangle(const FSR_Context& InContext, const FSRVertexShaderOutput& A, const FSRVertexShaderOutput& B, const FSRVertexShaderOutput& C)
 {
+#if SR_ENABLE_PERFORMACE_STAT
+	FPerformanceCounter	PerfCounter;
+	const std::shared_ptr<FSR_Performance>& Stats = InContext._stats;
+	double elapse_microseconds = 0.0;
+#endif
+
 	const FSRVertexShaderOutput* ABC[3] = { &A, &B, &C };
 	FSR_RasterizedVert screen[3];
 
@@ -309,13 +279,13 @@ void FSR_Renderer::RasterizeTriangle(const FSR_Context& InContext, const FSRVert
 	const int32_t Y0 = static_cast<int32_t>(floor(bbox._min.y));
 	const int32_t X1 = static_cast<int32_t>(floor(bbox._max.x));
 	const int32_t Y1 = static_cast<int32_t>(floor(bbox._max.y));
-	
-	glm::vec3 P(0,0,0);
+
+	glm::vec3 P(0, 0, 0);
 	FSRPixelShaderInput PixelInput;
 	FSRPixelShaderOutput PixelOutput;
 	for (int32_t cx = X0; cx <= X1; ++cx)
 	{
-		for (int32_t cy=Y0; cy <= Y1; ++cy)
+		for (int32_t cy = Y0; cy <= Y1; ++cy)
 		{
 			P.x = cx + 0.5f;
 			P.y = cy + 0.5f;
@@ -353,22 +323,45 @@ void FSR_Renderer::RasterizeTriangle(const FSR_Context& InContext, const FSRVert
 			}
 
 			// perspective correct interpolate
-			float w0 = E12 / E012;
-			float w1 = E20 / E012;
-			float w2 = (1.f - w0 - w1); // fixed for (w0 + w1 + w2) != 1.0
+			const float w0 = E12 / E012;
+			const float w1 = E20 / E012;
+			const float w2 = (1.f - w0 - w1); // fixed for (w0 + w1 + w2) != 1.0
 
-			float depth = w0 * SV0._screen_pos.z + w1 * SV1._screen_pos.z + w2 * SV2._screen_pos.z;
-			float Z = 1.f / (w0 * SV0._inv_w + w1 * SV1._inv_w + w2 * SV2._inv_w);
+			const float depth = w0 * SV0._screen_pos.z + w1 * SV1._screen_pos.z + w2 * SV2._screen_pos.z;
+			const float W = 1.f / (w0 * SV0._inv_w + w1 * SV1._inv_w + w2 * SV2._inv_w);
+			
+#if SR_ENABLE_PERFORMACE_STAT
+			PerfCounter.StartPerf();
+#endif
 			bool bPassDepth = InContext.DepthTestAndOverride(cx, cy, depth);
+#if SR_ENABLE_PERFORMACE_STAT
+			elapse_microseconds = PerfCounter.EndPerf();
+			Stats->_depth_tw_count++;
+			Stats->_depth_total_microseconds += elapse_microseconds;
+#endif
 			if (!bPassDepth)
 			{
 				continue;
 			}
 
 			// attributes
-			InterpolateVertexAttributes(VA0, w0, VA1, w1, VA2, w2, Z, PixelInput._attributes);
+			InterpolateVertexAttributes(VA0, w0, VA1, w1, VA2, w2, W, PixelInput._attributes);
+
+#if SR_ENABLE_PERFORMACE_STAT
+			PerfCounter.StartPerf();
+#endif
 			InContext._ps->Process(InContext, PixelInput, PixelOutput);
-			for (uint32_t k=0; k<PixelOutput._color_cnt; ++k)
+
+#if SR_ENABLE_PERFORMACE_STAT
+			elapse_microseconds = PerfCounter.EndPerf();
+			Stats->_ps_invoke_count++;
+			Stats->_ps_total_microseconds += elapse_microseconds;
+#endif
+			
+#if SR_ENABLE_PERFORMACE_STAT
+			PerfCounter.StartPerf();
+#endif
+			for (uint32_t k = 0; k < PixelOutput._color_cnt; ++k)
 			{
 				const std::shared_ptr<FSR_Texture2D>& rt = InContext._rt_colors[k];
 				if (rt && rt->IsValid())
@@ -377,9 +370,107 @@ void FSR_Renderer::RasterizeTriangle(const FSR_Context& InContext, const FSRVert
 					rt->Write(cx, cy, color.r, color.g, color.b, color.a);
 				}
 			} // end for k
+
+#if SR_ENABLE_PERFORMACE_STAT
+			elapse_microseconds = PerfCounter.EndPerf();
+			Stats->_color_write_count += PixelOutput._color_cnt;
+			Stats->_color_total_microseconds += elapse_microseconds;
+#endif
 		} //end cy
 	} // end cx
 }
+
+//////////////////////////////////////////////////////////////////////////
+
+// draw a triangle
+void FSR_Renderer::DrawTriangle(const FSR_Context& InContext, const FSRVertex& InA, const FSRVertex& InB, const FSRVertex& InC)
+{
+#if SR_ENABLE_PERFORMACE_STAT
+	FPerformanceCounter	PerfCounter;
+	const std::shared_ptr<FSR_Performance>& Stats = InContext._stats;
+	double elapse_microseconds = 0.0;
+#endif
+
+	FSRVertexShaderOutput Verts[3];
+
+#if SR_ENABLE_PERFORMACE_STAT
+	PerfCounter.StartPerf();
+#endif
+
+	InContext._vs->Process(InContext, InA, Verts[0]);
+	InContext._vs->Process(InContext, InB, Verts[1]);
+	InContext._vs->Process(InContext, InC, Verts[2]);
+
+#if SR_ENABLE_PERFORMACE_STAT
+	elapse_microseconds = PerfCounter.EndPerf();
+
+	Stats->_triangles_count++;
+	Stats->_vertexes_count += 3;
+	Stats->_vs_invoke_count += 3;
+	Stats->_vs_total_microseconds += elapse_microseconds;
+#endif
+
+#if SR_ENABLE_PERFORMACE_STAT
+	PerfCounter.StartPerf();
+#endif
+	// clipping
+	bool bOutsideOfVolume = false;
+	for (uint32_t i=0; i< SR_ARRAY_COUNT(kFrustumPlanes) && !bOutsideOfVolume; ++i)
+	{
+		const glm::vec4* Plane = kFrustumPlanes[i];
+		bOutsideOfVolume = (glm::dot(*Plane, Verts[0]._vertex) < 0.f) &&
+						   (glm::dot(*Plane, Verts[1]._vertex) < 0.f) &&
+						   (glm::dot(*Plane, Verts[2]._vertex) < 0.f);
+	}
+
+#if SR_ENABLE_PERFORMACE_STAT
+	elapse_microseconds = PerfCounter.EndPerf();
+
+	Stats->_check_inside_frustum_count++;
+	Stats->_check_inside_frustum_microseconds += elapse_microseconds;
+#endif
+
+	if (bOutsideOfVolume)
+	{
+		return; // DISCARD!
+	}
+
+#if SR_ENABLE_PERFORMACE_STAT
+	PerfCounter.StartPerf();
+#endif
+
+	FSRVertexShaderOutput newVerts[4];
+	const uint32_t verts_cnt = ClipAgainstNearPlane(Verts, newVerts);
+	
+#if SR_ENABLE_PERFORMACE_STAT
+	elapse_microseconds = PerfCounter.EndPerf();
+
+	Stats->_clip_invoke_count++;
+	Stats->_clip_total_microseconds += elapse_microseconds;
+#endif
+
+#if SR_ENABLE_PERFORMACE_STAT
+	PerfCounter.StartPerf();
+#endif
+
+	if (verts_cnt == 3)
+	{
+		RasterizeTriangle(InContext, newVerts[0], newVerts[1], newVerts[2]);
+	}
+	else if (verts_cnt == 4)
+	{
+		RasterizeTriangle(InContext, newVerts[0], newVerts[1], newVerts[2]);
+		RasterizeTriangle(InContext, newVerts[2], newVerts[3], newVerts[0]);
+	}
+
+#if SR_ENABLE_PERFORMACE_STAT
+	elapse_microseconds = PerfCounter.EndPerf();
+
+	Stats->_raster_invoked_count += (verts_cnt == 3) ? 1 : ((verts_cnt == 4) ? 2 : 0);
+	Stats->_raster_total_microseconds += elapse_microseconds;
+#endif
+}
+
 
 // draw a mesh
 void FSR_Renderer::DrawMesh(FSR_Context& InContext, const FSR_Mesh& InMesh)

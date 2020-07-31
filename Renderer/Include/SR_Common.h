@@ -15,7 +15,11 @@
 #include <gtx/fast_square_root.hpp>
 
 
+#define SR_ENABLE_PERFORMACE_STAT	1
+
 #define SR_INVALID_INDEX		(-1)
+#define SR_ARRAY_COUNT(a)		(sizeof(a) / sizeof(a[0]))
+
 
 // target or texture format
 enum class EPixelFormat

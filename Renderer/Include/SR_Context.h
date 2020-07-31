@@ -8,6 +8,7 @@
 #include "SR_Buffer2D.h"
 #include "SR_Shader.h"
 #include "SR_Material.h"
+#include "SR_Performance.h"
 
 
 // render context
@@ -45,6 +46,7 @@ public:
 	std::shared_ptr<FSR_Buffer2D> GetDepthBuffer() const;
 	std::shared_ptr<FSR_Buffer2D> GetColorBuffer(uint32_t InIndex) const;
 
+	// utilities for raster
 	glm::vec3 NdcToScreenPostion(const glm::vec3& ndc) const;
 	const FSR_Rectangle& ViewportRectangle() const { return _viewport_rect; }
 	bool DepthTestAndOverride(uint32_t cx, uint32_t cy, float InDepth) const;
@@ -65,4 +67,6 @@ public:
 	std::shared_ptr<FSR_Material>		_material;
 	std::shared_ptr<FSR_VertexShader>	_vs;
 	std::shared_ptr<FSR_PixelShader>	_ps;
+
+	std::shared_ptr<FSR_Performance>	_stats;
 };

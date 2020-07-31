@@ -39,6 +39,7 @@ FSR_Context::FSR_Context()
 	, _projection_inv(1.f)
 	, _front_face(EFrontFace::FACE_CW)
 {
+	_stats = std::make_shared<FSR_Performance>();
 }
 
 FSR_Context::~FSR_Context()

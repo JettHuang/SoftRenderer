@@ -80,6 +80,10 @@ void Example_SingleTriangle()
 	FSR_Renderer::DrawTriangle(ctx, v0, v2, v3);
 
 	OuputPPM(ctx.GetColorBuffer(0));
+
+#if SR_ENABLE_PERFORMACE_STAT
+	ctx._stats->DisplayStats(std::cerr);
+#endif
 }
 
 // test multi-cubes
@@ -205,6 +209,10 @@ void Example_Multi_Cubes()
 	} // end for n
 
 	OuputPPM(ctx.GetColorBuffer(0));
+
+#if SR_ENABLE_PERFORMACE_STAT
+	ctx._stats->DisplayStats(std::cerr);
+#endif
 }
 
 void Example_Mesh_Scene()
@@ -246,11 +254,15 @@ void Example_Mesh_Scene()
 
 	// ouput image
 	OuputPPM(ctx.GetColorBuffer(0));
+
+#if SR_ENABLE_PERFORMACE_STAT
+	ctx._stats->DisplayStats(std::cerr);
+#endif
 }
 
 int main()
 {
-	Example_SingleTriangle();
+	//Example_SingleTriangle();
 	//Example_Multi_Cubes();
-	//Example_Mesh_Scene();
+	Example_Mesh_Scene();
 }
