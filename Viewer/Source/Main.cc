@@ -244,18 +244,18 @@ void Example_Mesh_Scene()
 	ctx.SetProjectionMatrix(proj);
 
 	// load mesh
+	std::cerr << "Loading mesh .... " << std::endl;
 	std::shared_ptr<FSR_Mesh> SceneMesh = std::make_shared<FSR_Mesh>();
 	if (!SceneMesh->LoadFromObjFile("./Assets/sponza.obj", "./Assets/"))
 	{
 		std::cerr << "Load .obj scene failed." << std::endl;
 	}
 
-	std::cerr << "Start Draw Mesh" << std::endl;
+	std::cerr << "Start Draw Mesh ... " << std::endl;
 
 	FPerformanceCounter PerfCounter;
 	PerfCounter.StartPerf();
 	FSR_Renderer::DrawMesh(ctx, *SceneMesh);
-
 	std::cerr << " Draw Mesh Elapse microseconds: " << PerfCounter.EndPerf() << std::endl;
 
 	// ouput image

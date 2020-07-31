@@ -10,6 +10,8 @@
 #include <memory>
 #include <algorithm>
 
+#define GLM_FORCE_INLINE
+#define GLM_FORCE_INTRINSICS
 #include <glm.hpp>
 #include <gtc/matrix_transform.hpp>
 #include <gtx/fast_square_root.hpp>
