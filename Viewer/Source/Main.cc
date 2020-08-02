@@ -271,9 +271,83 @@ void Example_Mesh_Scene()
 #endif
 }
 
+// https://zhuanlan.zhihu.com/p/21961722
+class FTeapot_VertexShader : public FSR_VertexShader
+{
+public:
+	virtual void Process(const FSR_Context& InContext, const FSRVertexShaderInput& Input, FSRVertexShaderOutput& Output) override
+	{
+		Output._vertex = InContext._mvp * glm::vec4(Input._vertex, 1.f);
+		Output._attributes = Input._attributes;
+	}
+};
+
+class FTeapot_PixelShader : public FSR_PixelShader
+{
+public:
+	virtual void Process(const FSR_Context& InContext, const FSRPixelShaderInput& Input, FSRPixelShaderOutput& Output) override
+	{
+		glm::vec3 n = Input._attributes._members[0] * glm::vec3(0.5) + glm::vec3(0.5); // transform normal values [-1, 1] -> [0, 1] to visualize better
+		Output._colors[0] = glm::vec4(n, 1.f);
+		Output._color_cnt = 1;
+	}
+};
+
+void Example_Teapot_Scene()
+{
+	const uint32_t kWidth = 1280u;
+	const uint32_t kHeight = 720u;
+
+	FSR_Context ctx;
+	std::shared_ptr<FSR_VertexShader> vs = std::make_shared<FTeapot_VertexShader>();
+	std::shared_ptr<FSR_PixelShader> ps = std::make_shared<FTeapot_PixelShader>();
+
+	ctx.SetRenderTarget(kWidth, kHeight, 1);
+	ctx.SetViewport(0, 0, kWidth, kHeight);
+	ctx.SetCullFaceMode(EFrontFace::FACE_CW);
+	ctx.SetShader(vs, ps);
+	ctx.ClearRenderTarget(glm::vec4(0, 0, 0, 0));
+	// setup camera
+	// Build view & projection matrices (right-handed sysem)
+	float nearPlane = 0.125f;
+	float farPlane = 5000.f;
+	glm::vec3 eye(0, 2, 2.0);
+	glm::vec3 lookat(0, 0, 0);
+	glm::vec3 up(0, 1, 0);
+
+	const glm::mat4 view = glm::lookAt(eye, lookat, up);
+	const glm::mat4 modelview = glm::rotate(view, glm::radians(-30.f), glm::vec3(0, 1, 0));
+	const glm::mat4 proj = glm::perspective(glm::radians(60.f), static_cast<float>(kWidth) / static_cast<float>(kHeight), nearPlane, farPlane);
+	ctx.SetModelViewMatrix(modelview);
+	ctx.SetProjectionMatrix(proj);
+
+	// load mesh
+	std::cerr << "Loading mesh .... " << std::endl;
+	std::shared_ptr<FSR_Mesh> SceneMesh = std::make_shared<FSR_Mesh>();
+	if (!SceneMesh->LoadFromObjFile("./Assets/teapot.obj", "./Assets/"))
+	{
+		std::cerr << "Load .obj scene failed." << std::endl;
+	}
+
+	std::cerr << "Start Draw Mesh ... " << std::endl;
+
+	FPerformanceCounter PerfCounter;
+	PerfCounter.StartPerf();
+	FSR_Renderer::DrawMesh(ctx, *SceneMesh);
+	std::cerr << " Draw Mesh Elapse microseconds: " << PerfCounter.EndPerf() << std::endl;
+
+	// ouput image
+	OuputPPM(ctx.GetColorBuffer(0));
+
+#if SR_ENABLE_PERFORMACE_STAT
+	ctx._stats->DisplayStats(std::cerr);
+#endif
+}
+
 int main()
 {
 	//Example_SingleTriangle();
 	//Example_Multi_Cubes();
-	Example_Mesh_Scene();
+	//Example_Mesh_Scene();
+	Example_Teapot_Scene();
 }
