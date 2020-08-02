@@ -151,9 +151,11 @@ bool FSR_Mesh::LoadFromObjFile(const char* fileName, const char* mtlBaseDir)
 				FSR_SubMesh mesh;
 				mesh._IndexOffset = meshIdxBase;
 				mesh._IndexCount = shape.mesh.indices.size();
+				mesh._MaterialIndex = SR_INVALID_INDEX;
 
-				assert((shape.mesh.material_ids[0] != -1) && "Mesh missing a material!");
-				mesh._MaterialIndex = shape.mesh.material_ids[0]; // No per-face material but fixed one
+				if (shape.mesh.material_ids[0] != -1) {
+					mesh._MaterialIndex = shape.mesh.material_ids[0]; // No per-face material but fixed one
+				}
 
 				_SubMeshes.push_back(mesh);
 			} // end for s

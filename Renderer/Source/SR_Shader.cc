@@ -9,8 +9,7 @@
 // simple vs & ps with color
 void FSR_SimpleVertexShader::Process(const FSR_Context& InContext, const FSRVertexShaderInput& Input, FSRVertexShaderOutput& Output)
 {
-	glm::mat4x4 mvp = InContext._projection * InContext._modelview;
-	Output._vertex = mvp * glm::vec4(Input._vertex, 1.f);
+	Output._vertex = InContext._mvp * glm::vec4(Input._vertex, 1.f);
 	Output._attributes = Input._attributes;
 }
 
@@ -23,8 +22,7 @@ void FSR_SimplePixelShader::Process(const FSR_Context& InContext, const FSRPixel
 // mesh vs & ps with diffuse texture
 void FSR_SimpleMeshVertexShader::Process(const FSR_Context& InContext, const FSRVertexShaderInput& Input, FSRVertexShaderOutput& Output)
 {
-	glm::mat4x4 mvp = InContext._projection * InContext._modelview;
-	Output._vertex = mvp * glm::vec4(Input._vertex, 1.f);
+	Output._vertex = InContext._mvp * glm::vec4(Input._vertex, 1.f);
 	Output._attributes = Input._attributes;
 }
 
@@ -37,7 +35,7 @@ void FSR_SimpleMeshPixelShader::Process(const FSR_Context& InContext, const FSRP
 #else
 	const glm::vec3 &uv = Input._attributes._members[1];
 	float R = 0.f, G = 0.f, B = 0.f, A = 0.f;
-	if (InContext._material->_diffuse_tex) 
+	if (InContext._material && InContext._material->_diffuse_tex)
 	{
 		InContext._material->_diffuse_tex->Sample2DNearest(uv.x, uv.y, R, G, B, A);
 	}

@@ -50,6 +50,8 @@ public:
 	glm::vec3 NdcToScreenPostion(const glm::vec3& ndc) const;
 	const FSR_Rectangle& ViewportRectangle() const { return _viewport_rect; }
 	bool DepthTestAndOverride(uint32_t cx, uint32_t cy, float InDepth) const;
+protected:
+	void UpdateMVP();
 public:
 	FSR_Rectangle	_viewport_rect;
 	
@@ -58,6 +60,8 @@ public:
 	glm::mat3x3	_modelview_inv_t;
 	glm::mat4x4 _projection;
 	glm::mat4x4 _projection_inv;
+	glm::mat4x4 _mvp;
+	glm::mat4x4 _mvp_inv;
 
 	EFrontFace	_front_face;
 	

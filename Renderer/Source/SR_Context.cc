@@ -92,6 +92,8 @@ void FSR_Context::SetModelViewMatrix(const glm::mat4x4& InModelView)
 	_modelview = InModelView;
 	_modelview_inv = glm::inverse(InModelView);
 	_modelview_inv_t = glm::transpose(_modelview_inv);
+
+	UpdateMVP();
 }
 
 // set projection matrix
@@ -99,6 +101,14 @@ void FSR_Context::SetProjectionMatrix(const glm::mat4x4& InProj)
 {
 	_projection = InProj;
 	_projection_inv = glm::inverse(InProj);
+
+	UpdateMVP();
+}
+
+void FSR_Context::UpdateMVP()
+{
+	_mvp = _projection * _modelview;
+	_mvp_inv = glm::inverse(_mvp);
 }
 
 std::shared_ptr<FSR_Buffer2D> FSR_Context::GetDepthBuffer() const
