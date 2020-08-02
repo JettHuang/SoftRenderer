@@ -156,7 +156,10 @@ bool FSR_Mesh::LoadFromObjFile(const char* fileName, const char* mtlBaseDir)
 				mesh._MaterialIndex = shape.mesh.material_ids[0]; // No per-face material but fixed one
 
 				_SubMeshes.push_back(mesh);
-			}
+			} // end for s
+
+			// sort by material
+			std::sort(_SubMeshes.begin(), _SubMeshes.end(), [](const FSR_SubMesh& lhs, const FSR_SubMesh& rhs) -> bool { return lhs._MaterialIndex < rhs._MaterialIndex; });
 		}
 	}
 	else
