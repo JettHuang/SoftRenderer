@@ -12,11 +12,13 @@ Another Simple CPU Rasterize Renderer.  the old one is MinOpenGL https://github.
 ![example cubes](https://github.com/JettHuang/AnotherSoftRasterizeRender/blob/master/Cubes.jpg)
 
 3. sponza scene: normal of mesh
- ![example cubes](https://github.com/JettHuang/AnotherSoftRasterizeRender/blob/master/sponza_normal.jpg)
+ ![example sponza](https://github.com/JettHuang/AnotherSoftRasterizeRender/blob/master/sponza_normal.jpg)
 
 4. sponza scene: diffuse texture(nearest sampler)
-![example cubes](https://github.com/JettHuang/AnotherSoftRasterizeRender/blob/master/sponza_sample_nearest.jpg)
+![example sponza](https://github.com/JettHuang/AnotherSoftRasterizeRender/blob/master/sponza_sample_nearest.jpg)
 
 5. sponza scene: diffuse texture(linear sampler)
-![example cubes](https://github.com/JettHuang/AnotherSoftRasterizeRender/blob/master/sponza_sample_linear.jpg)
+![example sponza](https://github.com/JettHuang/AnotherSoftRasterizeRender/blob/master/sponza_sample_linear.jpg)
 
+6. teapot scene: blinn-phong lighting
+![example teapot](https://github.com/JettHuang/AnotherSoftRasterizeRender/blob/master/teapot.jpg)
