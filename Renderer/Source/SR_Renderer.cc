@@ -518,9 +518,6 @@ void FSR_Renderer::DrawMesh(FSR_Context& InContext, const FSR_Mesh& InMesh)
 		if (subMesh._MaterialIndex != SR_INVALID_INDEX) {
 			InContext.SetMaterial(Materials[subMesh._MaterialIndex]);
 		}
-		else {
-			InContext.SetMaterial(nullptr);
-		}
 		
 		// draw triangles
 		const uint32_t triangleCount = subMesh._IndexCount / 3;

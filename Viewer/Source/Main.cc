@@ -272,6 +272,18 @@ void Example_Mesh_Scene()
 }
 
 // https://zhuanlan.zhihu.com/p/21961722
+class FTeapotMaterial : public FSR_Material
+{
+public:
+	FTeapotMaterial(float metalness, float smoothness)
+		: _metalness(metalness)
+		, _smoothness(smoothness)
+	{}
+
+	float _metalness;
+	float _smoothness;
+};
+
 class FTeapot_VertexShader : public FSR_VertexShader
 {
 public:
@@ -287,12 +299,8 @@ class FTeapot_PixelShader : public FSR_PixelShader
 public:
 	FTeapot_PixelShader()
 	{
-		metalness = 1.f;
-		smoothness = 5.f;
 		albedo = glm::vec3(1.0, 0.782, 0.344);
-		diffuse = albedo * (1.f - metalness);
 		kFb = glm::vec3(0.04, 0.04, 0.04);
-		specular = glm::mix(kFb, albedo, metalness);
 		light_dir = glm::fastNormalize(glm::vec3(0.0f, 0.0f, 1.0f));
 		light_color = glm::vec3(1.f, 1.f, 1.f);
 		view_dir = glm::vec3(0, 0, 1.f);
@@ -307,6 +315,13 @@ public:
 		Output._colors[0] = glm::vec4(n, 1.f);
 		Output._color_cnt = 1;
 #else
+		std::shared_ptr<FTeapotMaterial> material = std::dynamic_pointer_cast<FTeapotMaterial>(InContext._material);
+		float smoothness = material->_smoothness;
+		float metalness = material->_metalness;
+
+		diffuse = albedo * (1.f - metalness);
+		specular = glm::mix(kFb, albedo, metalness);
+
 		glm::vec3 N = glm::fastNormalize(InContext._modelview_inv_t * Input._attributes._members[0]);
 		float NdotH = glm::clamp(glm::dot(N, halfvector), 0.f, 1.f);
 		float HdotV = glm::clamp(glm::dot(halfvector, view_dir), 0.f, 1.f);
@@ -325,8 +340,6 @@ public:
 	}
 
 protected:
-	float metalness;
-	float smoothness;
 	glm::vec3 albedo;
 	glm::vec3 diffuse;
 	glm::vec3 kFb;
@@ -355,14 +368,13 @@ void Example_Teapot_Scene()
 	// Build view & projection matrices (right-handed sysem)
 	float nearPlane = 0.125f;
 	float farPlane = 5000.f;
-	glm::vec3 eye(0, 1.0, 1.0);
+	glm::vec3 eye(0, 2.0, 2.0);
 	glm::vec3 lookat(0, 0, 0);
 	glm::vec3 up(0, 1, 0);
 
 	const glm::mat4 view = glm::lookAt(eye, lookat, up);
-	const glm::mat4 modelview = glm::rotate(view, glm::radians(0.f), glm::vec3(0, 1, 0));
 	const glm::mat4 proj = glm::perspective(glm::radians(60.f), static_cast<float>(kWidth) / static_cast<float>(kHeight), nearPlane, farPlane);
-	ctx.SetModelViewMatrix(modelview);
+	ctx.SetModelViewMatrix(view);
 	ctx.SetProjectionMatrix(proj);
 
 	// load mesh
@@ -375,9 +387,27 @@ void Example_Teapot_Scene()
 
 	std::cerr << "Start Draw Mesh ... " << std::endl;
 
+	std::shared_ptr<FTeapotMaterial> materials[5];
+	materials[0] = std::make_shared<FTeapotMaterial>(0.f, 5.f);
+	materials[1] = std::make_shared<FTeapotMaterial>(0.3f, 5.f);
+	materials[2] = std::make_shared<FTeapotMaterial>(0.6f, 5.f);
+	materials[3] = std::make_shared<FTeapotMaterial>(0.8f, 5.f);
+	materials[4] = std::make_shared<FTeapotMaterial>(1.0f, 5.f);
+
 	FPerformanceCounter PerfCounter;
 	PerfCounter.StartPerf();
-	FSR_Renderer::DrawMesh(ctx, *SceneMesh);
+
+	float offsetx = -2.f;
+	for (int i = 0; i < 5; ++i, offsetx +=1.f)
+	{
+		const glm::mat4 modelview = glm::translate(view, glm::vec3(offsetx, 0, 0));
+		ctx.SetModelViewMatrix(modelview);
+		ctx.SetMaterial(materials[i]);
+
+		FSR_Renderer::DrawMesh(ctx, *SceneMesh);
+	} // end for i
+
+	
 	std::cerr << " Draw Mesh Elapse microseconds: " << PerfCounter.EndPerf() << std::endl;
 
 	// ouput image
