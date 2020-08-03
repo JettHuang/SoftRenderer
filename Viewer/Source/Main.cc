@@ -285,12 +285,56 @@ public:
 class FTeapot_PixelShader : public FSR_PixelShader
 {
 public:
+	FTeapot_PixelShader()
+	{
+		metalness = 1.f;
+		smoothness = 5.f;
+		albedo = glm::vec3(1.0, 0.782, 0.344);
+		diffuse = albedo * (1.f - metalness);
+		kFb = glm::vec3(0.04, 0.04, 0.04);
+		specular = glm::mix(kFb, albedo, metalness);
+		light_dir = glm::fastNormalize(glm::vec3(0.0f, 0.0f, 1.0f));
+		light_color = glm::vec3(1.f, 1.f, 1.f);
+		view_dir = glm::vec3(0, 0, 1.f);
+		halfvector = glm::fastNormalize(view_dir + light_dir);
+	}
+
 	virtual void Process(const FSR_Context& InContext, const FSRPixelShaderInput& Input, FSRPixelShaderOutput& Output) override
 	{
-		glm::vec3 n = Input._attributes._members[0] * glm::vec3(0.5) + glm::vec3(0.5); // transform normal values [-1, 1] -> [0, 1] to visualize better
+#if 0
+		glm::vec3 N = glm::fastNormalize(InContext._modelview_inv_t * Input._attributes._members[0]);
+		glm::vec3 n = N * glm::vec3(0.5) + glm::vec3(0.5); // transform normal values [-1, 1] -> [0, 1] to visualize better
 		Output._colors[0] = glm::vec4(n, 1.f);
 		Output._color_cnt = 1;
+#else
+		glm::vec3 N = glm::fastNormalize(InContext._modelview_inv_t * Input._attributes._members[0]);
+		float NdotH = glm::clamp(glm::dot(N, halfvector), 0.f, 1.f);
+		float HdotV = glm::clamp(glm::dot(halfvector, view_dir), 0.f, 1.f);
+		float NdotL = glm::clamp(glm::dot(N, light_dir), 0.f, 1.f);
+		glm::vec3 fresnel = fresnelSchlick(HdotV, specular);
+		
+		glm::vec3 color = (diffuse + ((smoothness + 2.f) / 8.f) * powf(NdotH, smoothness) * fresnel) * light_color* NdotL;
+		Output._colors[0] = glm::vec4(color, 1.f);
+		Output._color_cnt = 1;
+#endif
 	}
+
+	glm::vec3 fresnelSchlick(float HdotV, const glm::vec3& F0) const
+	{
+		return F0 + (glm::vec3(1.f, 1.f, 1.f) - F0) * powf(1.f - HdotV, 5.f);
+	}
+
+protected:
+	float metalness;
+	float smoothness;
+	glm::vec3 albedo;
+	glm::vec3 diffuse;
+	glm::vec3 kFb;
+	glm::vec3 specular;
+	glm::vec3 light_dir;
+	glm::vec3 light_color;
+	glm::vec3 view_dir;
+	glm::vec3 halfvector;
 };
 
 void Example_Teapot_Scene()
@@ -304,19 +348,19 @@ void Example_Teapot_Scene()
 
 	ctx.SetRenderTarget(kWidth, kHeight, 1);
 	ctx.SetViewport(0, 0, kWidth, kHeight);
-	ctx.SetCullFaceMode(EFrontFace::FACE_CW);
+	ctx.SetCullFaceMode(EFrontFace::FACE_CCW);
 	ctx.SetShader(vs, ps);
 	ctx.ClearRenderTarget(glm::vec4(0, 0, 0, 0));
 	// setup camera
 	// Build view & projection matrices (right-handed sysem)
 	float nearPlane = 0.125f;
 	float farPlane = 5000.f;
-	glm::vec3 eye(0, 2, 2.0);
+	glm::vec3 eye(0, 1.0, 1.0);
 	glm::vec3 lookat(0, 0, 0);
 	glm::vec3 up(0, 1, 0);
 
 	const glm::mat4 view = glm::lookAt(eye, lookat, up);
-	const glm::mat4 modelview = glm::rotate(view, glm::radians(-30.f), glm::vec3(0, 1, 0));
+	const glm::mat4 modelview = glm::rotate(view, glm::radians(0.f), glm::vec3(0, 1, 0));
 	const glm::mat4 proj = glm::perspective(glm::radians(60.f), static_cast<float>(kWidth) / static_cast<float>(kHeight), nearPlane, farPlane);
 	ctx.SetModelViewMatrix(modelview);
 	ctx.SetProjectionMatrix(proj);
