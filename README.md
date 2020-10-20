@@ -1,4 +1,4 @@
-# AnotherSoftRasterizeRender
+# SoftRenderer
 Another Simple CPU Rasterize Renderer.  the old one is MinOpenGL https://github.com/JettHuang/MinOpenGL
 
 # How to Build
@@ -22,3 +22,5 @@ Another Simple CPU Rasterize Renderer.  the old one is MinOpenGL https://github.
 
 6. teapot scene: blinn-phong lighting
 ![example teapot](https://github.com/JettHuang/AnotherSoftRasterizeRender/blob/master/teapot.jpg)
+![example teapot](https://github.com/JettHuang/SoftRenderer/blob/master/teapot_02.jpg)
+
