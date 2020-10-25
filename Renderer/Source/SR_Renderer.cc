@@ -213,7 +213,7 @@ inline void InterpolateVertexAttributes(const FSRVertexAttributes& V0, float w0,
 	Output._count = V0._count;
 }
 
-static void RasterizeTriangle(const FSR_Context& InContext, const FSRVertexShaderOutput& A, const FSRVertexShaderOutput& B, const FSRVertexShaderOutput& C)
+static void RasterizeTriangleNormal(const FSR_Context& InContext, const FSRVertexShaderOutput& A, const FSRVertexShaderOutput& B, const FSRVertexShaderOutput& C)
 {
 #if SR_ENABLE_PERFORMACE_STAT
 	FPerformanceCounter	PerfCounter;
@@ -358,15 +358,7 @@ static void RasterizeTriangle(const FSR_Context& InContext, const FSRVertexShade
 #if SR_ENABLE_PERFORMACE_STAT
 			PerfCounter.StartPerf();
 #endif
-			for (uint32_t k = 0; k < PixelOutput._color_cnt; ++k)
-			{
-				const std::shared_ptr<FSR_Texture2D>& rt = InContext._rt_colors[k];
-				if (rt)
-				{
-					const glm::vec4& color = PixelOutput._colors[k];
-					rt->Write(cx, cy, color.r, color.g, color.b, color.a);
-				}
-			} // end for k
+			InContext.OutputAndMergeColor(cx, cy, PixelOutput);
 
 #if SR_ENABLE_PERFORMACE_STAT
 			elapse_microseconds = PerfCounter.EndPerf();
@@ -377,6 +369,201 @@ static void RasterizeTriangle(const FSR_Context& InContext, const FSRVertexShade
 	} // end cy
 }
 
+static void RasterizeTriangleMSAA4(const FSR_Context& InContext, const FSRVertexShaderOutput& A, const FSRVertexShaderOutput& B, const FSRVertexShaderOutput& C)
+{
+	assert(InContext._MSAASamplesNum == 4);
+
+#if SR_ENABLE_PERFORMACE_STAT
+	FPerformanceCounter	PerfCounter;
+	const std::shared_ptr<FSR_Performance>& Stats = InContext._stats;
+	double elapse_microseconds = 0.0;
+#endif
+
+	const FSRVertexShaderOutput* ABC[3] = { &A, &B, &C };
+	FSR_RasterizedVert screen[3];
+
+	// perspective divide
+	for (uint32_t i = 0; i < 3; ++i)
+	{
+		float inv_w = 1.f / ABC[i]->_vertex.w;
+		screen[i]._inv_w = inv_w;
+		screen[i]._ndc_pos.x = ABC[i]->_vertex.x * inv_w;
+		screen[i]._ndc_pos.y = ABC[i]->_vertex.y * inv_w;
+		screen[i]._ndc_pos.z = ABC[i]->_vertex.z * inv_w;
+		screen[i]._screen_pos = InContext.NdcToScreenPostion(screen[i]._ndc_pos);
+	}
+
+	uint32_t iv0 = 0, iv1 = 1, iv2 = 2;
+	float E012 = EdgeFunction(screen[0]._screen_pos, screen[1]._screen_pos, screen[2]._screen_pos);
+	if (E012 > -1.f && E012 < 1.f)
+	{
+		return; // DISCARD!
+	}
+
+	bool bClockwise = (E012 >= 0.f);
+	bool bClipped = bClockwise ^ (InContext._front_face == EFrontFace::FACE_CW);
+	if (bClipped)
+	{
+		return;  // DISCARD!
+	}
+
+	if (!bClockwise) // exchange v to clockwise
+	{
+		iv1 = 2; iv2 = 1;
+		E012 = -E012;
+	}
+
+	FSR_Rectangle bbox;
+	const FSR_Rectangle bbox_triangle = BoundingboxOfTriangle(screen[0]._screen_pos, screen[1]._screen_pos, screen[2]._screen_pos);
+	if (!intersect(bbox_triangle, InContext.ViewportRectangle(), bbox))
+	{
+		return; // DISCARD!
+	}
+
+	const FSR_RasterizedVert& SV0 = screen[iv0];
+	const FSR_RasterizedVert& SV1 = screen[iv1];
+	const FSR_RasterizedVert& SV2 = screen[iv2];
+
+	FSRVertexAttributes VA0, VA1, VA2;
+	DivideVertexAttributesByW(ABC[iv0]->_attributes, SV0._inv_w, VA0);
+	DivideVertexAttributesByW(ABC[iv1]->_attributes, SV1._inv_w, VA1);
+	DivideVertexAttributesByW(ABC[iv2]->_attributes, SV2._inv_w, VA2);
+
+	const int32_t X0 = static_cast<int32_t>(floor(bbox._minx));
+	const int32_t Y0 = static_cast<int32_t>(floor(bbox._miny));
+	const int32_t X1 = static_cast<int32_t>(ceilf(bbox._maxx));
+	const int32_t Y1 = static_cast<int32_t>(ceilf(bbox._maxy));
+
+	static const float samples_pattern[4][2] = { { 0.25f, 0.25f }, { 0.75f, 0.25f }, { 0.75f, 0.75f }, { 0.25f, 0.75f } };
+	glm::vec3 P(0, 0, 0);
+	FSRPixelShaderInput PixelInput;
+	FSRPixelShaderOutput PixelOutput;
+
+	for (int32_t cy = Y0; cy < Y1; ++cy)
+	{
+		for (int32_t cx = X0; cx < X1; ++cx)
+		{
+			int32_t bitMask = 0;
+			for (int32_t sampleIndex = 0; sampleIndex < 4; ++sampleIndex)
+			{
+
+				P.x = cx + samples_pattern[sampleIndex][0];
+				P.y = cy + samples_pattern[sampleIndex][1];
+
+				float E12 = EdgeFunction(SV1._screen_pos, SV2._screen_pos, P);
+				float E20 = EdgeFunction(SV2._screen_pos, SV0._screen_pos, P);
+				float E01 = EdgeFunction(SV0._screen_pos, SV1._screen_pos, P);
+				if (E12 < 0.f || E20 < 0.f || E01 < 0.f)
+				{
+					// outside of the triangle
+					continue;
+				}
+
+				glm::vec3 edge12 = SV2._screen_pos - SV1._screen_pos;
+				glm::vec3 edge20 = SV0._screen_pos - SV2._screen_pos;
+				glm::vec3 edge01 = SV1._screen_pos - SV0._screen_pos;
+
+				// top-left rule:
+				// the pixel or point is considered to overlap a triangle if it is either inside the triangle or 
+				// lies on either a triangle top edge or any edge that is considered to be a left edge.
+				if (E12 == 0.f) {
+					if (!((edge12.y == 0.f && edge12.x > 0.f) || (edge12.y > 0.f))) {
+						continue;
+					}
+				}
+				if (E20 == 0.f) {
+					if (!((edge20.y == 0.f && edge20.x > 0.f) || (edge20.y > 0.f))) {
+						continue;
+					}
+				}
+				if (E01 == 0.f) {
+					if (!((edge01.y == 0.f && edge01.x > 0.f) || (edge01.y > 0.f))) {
+						continue;
+					}
+				}
+
+				// perspective correct interpolate
+				const float w0 = E12 / E012;
+				const float w1 = E20 / E012;
+				const float w2 = (1.f - w0 - w1); // fixed for (w0 + w1 + w2) != 1.0
+
+				const float depth = w0 * SV0._screen_pos.z + w1 * SV1._screen_pos.z + w2 * SV2._screen_pos.z;
+#if SR_ENABLE_PERFORMACE_STAT
+				PerfCounter.StartPerf();
+#endif
+				bool bPassDepth = InContext.DepthTestAndOverrideMSAA(cx, cy, depth, sampleIndex);
+#if SR_ENABLE_PERFORMACE_STAT
+				elapse_microseconds = PerfCounter.EndPerf();
+				Stats->_depth_tw_count++;
+				Stats->_depth_total_microseconds += elapse_microseconds;
+#endif
+				if (!bPassDepth)
+				{
+					continue;
+				}
+
+				bitMask |= (0x01 << sampleIndex);
+			} // end for sampleIndex
+
+			if (!bitMask) 
+			{
+				continue;
+			}
+
+			// calculate center of pixel
+			{
+				P.x = cx + 0.5f;
+				P.y = cy + 0.5f;
+
+				float E12 = EdgeFunction(SV1._screen_pos, SV2._screen_pos, P);
+				float E20 = EdgeFunction(SV2._screen_pos, SV0._screen_pos, P);
+				float E01 = EdgeFunction(SV0._screen_pos, SV1._screen_pos, P);
+				// perspective correct interpolate
+				const float w0 = E12 / E012;
+				const float w1 = E20 / E012;
+				const float w2 = E01 / E012;
+				const float W = 1.f / (w0 * SV0._inv_w + w1 * SV1._inv_w + w2 * SV2._inv_w);
+
+				// attributes
+				InterpolateVertexAttributes(VA0, w0, VA1, w1, VA2, w2, W, PixelInput._attributes);
+			}
+			
+#if SR_ENABLE_PERFORMACE_STAT
+			PerfCounter.StartPerf();
+#endif
+			InContext._ps->Process(InContext, PixelInput, PixelOutput);
+
+#if SR_ENABLE_PERFORMACE_STAT
+			elapse_microseconds = PerfCounter.EndPerf();
+			Stats->_ps_invoke_count++;
+			Stats->_ps_total_microseconds += elapse_microseconds;
+#endif
+
+#if SR_ENABLE_PERFORMACE_STAT
+			PerfCounter.StartPerf();
+#endif
+			InContext.OutputAndMergeColorMSAA(cx, cy, PixelOutput, bitMask);
+
+#if SR_ENABLE_PERFORMACE_STAT
+			elapse_microseconds = PerfCounter.EndPerf();
+			Stats->_color_write_count += PixelOutput._color_cnt;
+			Stats->_color_total_microseconds += elapse_microseconds;
+#endif
+		} //end cx
+	} // end cy
+}
+
+static void RasterizeTriangle(const FSR_Context& InContext, const FSRVertexShaderOutput& A, const FSRVertexShaderOutput& B, const FSRVertexShaderOutput& C)
+{
+	if (InContext._bEnableMSAA)
+	{
+		RasterizeTriangleMSAA4(InContext, A, B, C);
+	}
+	else
+	{
+		RasterizeTriangleNormal(InContext, A, B, C);
+	}
+}
 //////////////////////////////////////////////////////////////////////////
 
 inline bool IsOnNegtiveSideOf_LeftPlane(const glm::vec4& V0, const glm::vec4& V1, const glm::vec4& V2)

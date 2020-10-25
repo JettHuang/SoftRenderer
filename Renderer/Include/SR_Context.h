@@ -11,6 +11,14 @@
 #include "SR_Performance.h"
 
 
+#define MSAA_SAMPLES		4
+
+#define MSAA_SAMPLE_0		0
+#define MSAA_SAMPLE_1		1
+#define MSAA_SAMPLE_2		2
+#define MSAA_SAMPLE_3		3
+
+
 // render context
 class FSR_Context
 {
@@ -19,7 +27,7 @@ public:
 	virtual ~FSR_Context();
 
 	// set render target
-	void SetRenderTarget(uint32_t w, uint32_t h, uint32_t nCount);
+	void SetRenderTarget(uint32_t w, uint32_t h, uint32_t nCount, bool InbEnableMSAA = false);
 	// clear render target
 	void ClearRenderTarget(const glm::vec4& InColor);
 	// set cull face mode
@@ -43,6 +51,7 @@ public:
 	}
 
 	// get frame-buffer
+	void ResolveMSAABuffer();
 	std::shared_ptr<FSR_Buffer2D> GetDepthBuffer() const;
 	std::shared_ptr<FSR_Buffer2D> GetColorBuffer(uint32_t InIndex) const;
 
@@ -50,6 +59,9 @@ public:
 	glm::vec3 NdcToScreenPostion(const glm::vec3& ndc) const;
 	const FSR_Rectangle& ViewportRectangle() const { return _viewport_rect; }
 	bool DepthTestAndOverride(uint32_t cx, uint32_t cy, float InDepth) const;
+	bool DepthTestAndOverrideMSAA(uint32_t cx, uint32_t cy, float InDepth, int32_t InSampleIndex) const;
+	void OutputAndMergeColor(int32_t cx, int32_t cy, FSRPixelShaderOutput& InPixelOutput) const;
+	void OutputAndMergeColorMSAA(int32_t cx, int32_t cy, FSRPixelShaderOutput& InPixelOutput, int32_t InSamplesBitMask) const;
 protected:
 	void UpdateMVP();
 public:
@@ -67,6 +79,11 @@ public:
 	
 	std::shared_ptr<FSR_DepthBuffer>	_rt_depth;
 	std::shared_ptr<FSR_Texture2D>		_rt_colors[MAX_MRT_COUNT];
+
+	bool		_bEnableMSAA;
+	int32_t		_MSAASamplesNum;
+	std::shared_ptr<FSR_DepthBuffer>	_rt_depth_msaa;
+	std::shared_ptr<FSR_Texture2D>		_rt_colors_msaa[MAX_MRT_COUNT];
 
 	std::shared_ptr<FSR_Material>		_material;
 	std::shared_ptr<FSR_VertexShader>	_vs;

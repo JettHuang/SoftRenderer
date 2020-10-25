@@ -117,7 +117,7 @@ void Example_SingleTriangle()
 	std::shared_ptr<FSR_VertexShader> vs = std::make_shared<FSR_SimpleVertexShader>();
 	std::shared_ptr<FSR_PixelShader> ps = std::make_shared<FSR_SimplePixelShader>();
 
-	ctx.SetRenderTarget(600, 600, 1);
+	ctx.SetRenderTarget(600, 600, 1, true);
 	ctx.SetViewport(0, 0, 600, 600);
 	ctx.SetCullFaceMode(EFrontFace::FACE_CW);
 	ctx.SetShader(vs, ps);
@@ -141,9 +141,10 @@ void Example_SingleTriangle()
 	v3._attributes._members[0] = glm::vec3(0.0, 1.0, 0.0);
 	v3._attributes._count = 1;
 
-	FSR_Renderer::DrawTriangle(ctx, v0, v1, v2);
+	//FSR_Renderer::DrawTriangle(ctx, v0, v1, v2);
 	FSR_Renderer::DrawTriangle(ctx, v0, v2, v3);
 
+	ctx.ResolveMSAABuffer();
 	OutputImage(ctx.GetColorBuffer(0));
 
 #if SR_ENABLE_PERFORMACE_STAT
@@ -187,7 +188,7 @@ void Example_Multi_Cubes()
 	std::shared_ptr<FSR_VertexShader> vs = std::make_shared<FSR_SimpleVertexShader>();
 	std::shared_ptr<FSR_PixelShader> ps = std::make_shared<FSR_SimplePixelShader>();
 
-	ctx.SetRenderTarget(kWidth, kHeight, 1);
+	ctx.SetRenderTarget(kWidth, kHeight, 1, true);
 	ctx.SetViewport(0, 0, kWidth, kHeight);
 	ctx.SetCullFaceMode(EFrontFace::FACE_CCW);
 	ctx.SetShader(vs, ps);
@@ -278,6 +279,7 @@ void Example_Multi_Cubes()
 
 	std::cerr << " Draw Cubes Elapse microseconds: " << PerfCounter.EndPerf() << std::endl;
 
+	ctx.ResolveMSAABuffer();
 	OutputImage(ctx.GetColorBuffer(0));
 
 #if SR_ENABLE_PERFORMACE_STAT
@@ -485,8 +487,8 @@ void Example_Teapot_Scene()
 
 int main()
 {
-	//Example_SingleTriangle();
+	Example_SingleTriangle();
 	//Example_Multi_Cubes();
 	//Example_Mesh_Scene();
-	Example_Teapot_Scene();
+	//Example_Teapot_Scene();
 }
