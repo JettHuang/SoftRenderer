@@ -2,15 +2,17 @@
 //		main entry.
 //
 
+#include <cstdio>
 #include <iostream>
 #include <vector>
 #include "SR_Headers.h"
+#include "svpng.inc"
 
 
 #define ARR_SIZE(x) (sizeof(x) / sizeof(x[0]))
 
 // output ppm
-void OuputPPM(const std::shared_ptr<FSR_Buffer2D>& InBuffer2D)
+void OutputPPM(const std::shared_ptr<FSR_Buffer2D>& InBuffer2D)
 {
 	int32_t image_width, image_height;
 
@@ -43,6 +45,69 @@ void OuputPPM(const std::shared_ptr<FSR_Buffer2D>& InBuffer2D)
 					  << static_cast<int>(256 * glm::clamp(B, 0.0f, 0.999f)) << '\n';
 		}
 	} // end j
+}
+
+void OutputPNG(const std::shared_ptr<FSR_Buffer2D>& InBuffer2D)
+{
+	int32_t image_width, image_height;
+
+	if (!InBuffer2D)
+	{
+		std::cerr << "OutputPNG failed. buffer2d is null" << std::endl;
+		return;
+	}
+
+	image_width = InBuffer2D->Width();
+	image_height = InBuffer2D->Height();
+	if (image_width <= 0 || image_height <= 0)
+	{
+		std::cerr << "OutputPNG failed. image_width or image_height is invalid" << std::endl;
+		return;
+	}
+
+	unsigned char* rgb = new unsigned char[image_width* image_height*3];
+	if (!rgb) {
+		return;
+	}
+
+	unsigned char* ptr = rgb;
+	for (int32_t j = image_height - 1; j >= 0; --j)
+	{
+		for (int32_t i = 0; i < image_width; ++i)
+		{
+			float R, G, B, A;
+			InBuffer2D->Read(i, j, R, G, B, A);
+
+			// Replace NaN components with zero. See explanation in Ray Tracing: The Rest of Your Life.
+			if (R != R) R = 0.0f;
+			if (G != G) G = 0.0f;
+			if (B != B) B = 0.0f;
+
+			// Write the translated [0,255] value of each color component.
+			*ptr++ = static_cast<int>(256 * glm::clamp(R, 0.0f, 0.999f));
+			*ptr++ = static_cast<int>(256 * glm::clamp(G, 0.0f, 0.999f));
+			*ptr++ = static_cast<int>(256 * glm::clamp(B, 0.0f, 0.999f));
+		}
+	} // end j
+
+	FILE* fp = fopen("output.png", "wb");
+	if (fp)
+	{
+		svpng(fp, image_width, image_height, rgb, 0);
+		fclose(fp);
+	}
+
+	delete[] rgb;
+}
+
+
+void OutputImage(const std::shared_ptr<FSR_Buffer2D>& InBuffer2D)
+{
+#if 0
+	OutputPPM(InBuffer2D);
+#else
+	OutputPNG(InBuffer2D);
+#endif
 }
 
 // test simple triangle
@@ -79,7 +144,7 @@ void Example_SingleTriangle()
 	FSR_Renderer::DrawTriangle(ctx, v0, v1, v2);
 	FSR_Renderer::DrawTriangle(ctx, v0, v2, v3);
 
-	OuputPPM(ctx.GetColorBuffer(0));
+	OutputImage(ctx.GetColorBuffer(0));
 
 #if SR_ENABLE_PERFORMACE_STAT
 	ctx._stats->DisplayStats(std::cerr);
@@ -213,7 +278,7 @@ void Example_Multi_Cubes()
 
 	std::cerr << " Draw Cubes Elapse microseconds: " << PerfCounter.EndPerf() << std::endl;
 
-	OuputPPM(ctx.GetColorBuffer(0));
+	OutputImage(ctx.GetColorBuffer(0));
 
 #if SR_ENABLE_PERFORMACE_STAT
 	ctx._stats->DisplayStats(std::cerr);
@@ -264,7 +329,7 @@ void Example_Mesh_Scene()
 	std::cerr << " Draw Mesh Elapse microseconds: " << PerfCounter.EndPerf() << std::endl;
 
 	// ouput image
-	OuputPPM(ctx.GetColorBuffer(0));
+	OutputImage(ctx.GetColorBuffer(0));
 
 #if SR_ENABLE_PERFORMACE_STAT
 	ctx._stats->DisplayStats(std::cerr);
@@ -411,7 +476,7 @@ void Example_Teapot_Scene()
 	std::cerr << " Draw Mesh Elapse microseconds: " << PerfCounter.EndPerf() << std::endl;
 
 	// ouput image
-	OuputPPM(ctx.GetColorBuffer(0));
+	OutputImage(ctx.GetColorBuffer(0));
 
 #if SR_ENABLE_PERFORMACE_STAT
 	ctx._stats->DisplayStats(std::cerr);
