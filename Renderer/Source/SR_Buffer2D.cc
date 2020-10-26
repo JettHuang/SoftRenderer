@@ -178,9 +178,21 @@ void FSR_Buffer2D_U16::Clear(float R, float G, float B, float A)
 {
 	uint16_t R16 = glm::clamp<uint16_t>(uint16_t(R * 65535.f), 0, 65535);
 	uint16_t* pData = reinterpret_cast<uint16_t*>(_buffer.data());
-	for (uint32_t k = 0; k < (_w * _h); ++k)
+	
+	// fill first line
+	for (uint32_t k = 0; k < _w; ++k)
 	{
 		*pData++ = R16;
+	}
+	// copy per line
+	uint32_t bytes_per_line = BytesPerLine();
+	uint8_t* src = reinterpret_cast<uint8_t*>(_buffer.data());
+	uint8_t* dst = src + bytes_per_line;
+	for (uint32_t k = 1; k < _h; ++k)
+	{
+		memcpy(dst, src, bytes_per_line);
+		src = dst;
+		dst += bytes_per_line;
 	}
 }
 
@@ -280,9 +292,21 @@ bool FSR_Buffer2D_F32::Write(uint32_t cx, uint32_t cy, float R)
 void FSR_Buffer2D_F32::Clear(float R, float G, float B, float A)
 {
 	float* pData = reinterpret_cast<float*>(_buffer.data());
-	for (uint32_t k = 0; k < (_w * _h); ++k)
+
+	// fill first line
+	for (uint32_t k = 0; k < _w; ++k)
 	{
 		*pData++ = R;
+	}
+	// copy per line
+	uint32_t bytes_per_line = BytesPerLine();
+	uint8_t* src = reinterpret_cast<uint8_t*>(_buffer.data());
+	uint8_t* dst = src + bytes_per_line;
+	for (uint32_t k = 1; k < _h; ++k)
+	{
+		memcpy(dst, src, bytes_per_line);
+		src = dst;
+		dst += bytes_per_line;
 	}
 }
 
@@ -392,11 +416,23 @@ void FSR_Buffer2D_RGB888::Clear(float R, float G, float B, float A)
 	uint8_t G8 = glm::clamp<uint8_t>(uint8_t(G * 255), 0, 255);
 	uint8_t B8 = glm::clamp<uint8_t>(uint8_t(B * 255), 0, 255);
 	uint8_t* pData = reinterpret_cast<uint8_t*>(_buffer.data());
-	for (uint32_t k = 0; k < (_w * _h); ++k)
+
+	// fill first line
+	for (uint32_t k = 0; k < _w; ++k)
 	{
 		*pData++ = R8;
 		*pData++ = G8;
 		*pData++ = B8;
+	}
+	// copy per line
+	uint32_t bytes_per_line = BytesPerLine();
+	uint8_t* src = reinterpret_cast<uint8_t*>(_buffer.data());
+	uint8_t* dst = src + bytes_per_line;
+	for (uint32_t k = 1; k < _h; ++k)
+	{
+		memcpy(dst, src, bytes_per_line);
+		src = dst;
+		dst += bytes_per_line;
 	}
 }
 
@@ -507,13 +543,25 @@ void FSR_Buffer2D_RGBA8888::Clear(float R, float G, float B, float A)
 	uint8_t B8 = glm::clamp<uint8_t>(uint8_t(B * 255), 0, 255);
 	uint8_t A8 = glm::clamp<uint8_t>(uint8_t(A * 255), 0, 255);
 	uint8_t* pData = reinterpret_cast<uint8_t*>(_buffer.data());
-	for (uint32_t k = 0; k < (_w * _h); ++k)
+
+	// fill first line
+	for (uint32_t k = 0; k < _w; ++k)
 	{
 		*pData++ = R8;
 		*pData++ = G8;
 		*pData++ = B8;
 		*pData++ = A8;
-	} // end for k
+	}
+	// copy per line
+	uint32_t bytes_per_line = BytesPerLine();
+	uint8_t* src = reinterpret_cast<uint8_t*>(_buffer.data());
+	uint8_t* dst = src + bytes_per_line;
+	for (uint32_t k = 1; k < _h; ++k)
+	{
+		memcpy(dst, src, bytes_per_line);
+		src = dst;
+		dst += bytes_per_line;
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -630,11 +678,23 @@ bool FSR_Buffer2D_RGBF32::Write(uint32_t cx, uint32_t cy, float R)
 void FSR_Buffer2D_RGBF32::Clear(float R, float G, float B, float A)
 {
 	float* pData = reinterpret_cast<float*>(_buffer.data());
-	for (uint32_t k = 0; k < (_w * _h); ++k)
+
+	// fill first line
+	for (uint32_t k = 0; k < _w; ++k)
 	{
 		*pData++ = R;
 		*pData++ = G;
 		*pData++ = B;
+	}
+	// copy per line
+	uint32_t bytes_per_line = BytesPerLine();
+	uint8_t* src = reinterpret_cast<uint8_t*>(_buffer.data());
+	uint8_t* dst = src + bytes_per_line;
+	for (uint32_t k = 1; k < _h; ++k)
+	{
+		memcpy(dst, src, bytes_per_line);
+		src = dst;
+		dst += bytes_per_line;
 	}
 }
 
@@ -756,12 +816,24 @@ bool FSR_Buffer2D_RGBAF32::Write(uint32_t cx, uint32_t cy, float R)
 void FSR_Buffer2D_RGBAF32::Clear(float R, float G, float B, float A)
 {
 	float* pData = reinterpret_cast<float*>(_buffer.data());
-	for (uint32_t k = 0; k < (_w * _h); ++k)
+
+	// fill first line
+	for (uint32_t k = 0; k < _w; ++k)
 	{
 		*pData++ = R;
 		*pData++ = G;
 		*pData++ = B;
 		*pData++ = A;
+	}
+	// copy per line
+	uint32_t bytes_per_line = BytesPerLine();
+	uint8_t* src = reinterpret_cast<uint8_t*>(_buffer.data());
+	uint8_t* dst = src + bytes_per_line;
+	for (uint32_t k = 1; k < _h; ++k)
+	{
+		memcpy(dst, src, bytes_per_line);
+		src = dst;
+		dst += bytes_per_line;
 	}
 }
 
