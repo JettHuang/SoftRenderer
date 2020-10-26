@@ -205,7 +205,7 @@ void FSR_Context::ResolveMSAABuffer()
 	} // end for rt
 }
 
-glm::vec3 FSR_Context::NdcToScreenPostion(const glm::vec3& ndc) const
+glm::vec3 FSR_Context::NDCToScreenPostion(const glm::vec3& ndc) const
 {
 	glm::vec3 screen_pos;
 

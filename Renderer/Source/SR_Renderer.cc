@@ -200,14 +200,25 @@ inline void DivideVertexAttributesByW(const FSRVertexAttributes& VInput, float I
 inline void InterpolateVertexAttributes(const FSRVertexAttributes& V0, float w0,
 	const FSRVertexAttributes& V1, float w1,
 	const FSRVertexAttributes& V2, float w2,
-	float Z,
+	float W,
 	FSRVertexAttributes& Output)
 {
 	for (uint32_t k = 0; k < V0._count; ++k)
 	{
+#if 0
 		Output._members[k] = (V0._members[k] * w0 +
 			V1._members[k] * w1 +
-			V2._members[k] * w2) * Z;
+			V2._members[k] * w2) * W;
+#else
+		const glm::vec3& a = V0._members[k];
+		const glm::vec3& b = V1._members[k];
+		const glm::vec3& c = V2._members[k];
+		glm::vec3& o = Output._members[k];
+
+		o.x = (a.x * w0 + b.x * w1 + c.x * w2) * W;
+		o.y = (a.y * w0 + b.y * w1 + c.y * w2) * W;
+		o.z = (a.z * w0 + b.z * w1 + c.z * w2) * W;
+#endif
 	}
 
 	Output._count = V0._count;
@@ -232,7 +243,7 @@ static void RasterizeTriangleNormal(const FSR_Context& InContext, const FSRVerte
 		screen[i]._ndc_pos.x = ABC[i]->_vertex.x * inv_w;
 		screen[i]._ndc_pos.y = ABC[i]->_vertex.y * inv_w;
 		screen[i]._ndc_pos.z = ABC[i]->_vertex.z * inv_w;
-		screen[i]._screen_pos = InContext.NdcToScreenPostion(screen[i]._ndc_pos);
+		screen[i]._screen_pos = InContext.NDCToScreenPostion(screen[i]._ndc_pos);
 	}
 
 	uint32_t iv0 = 0, iv1 = 1, iv2 = 2;
@@ -390,7 +401,7 @@ static void RasterizeTriangleMSAA4(const FSR_Context& InContext, const FSRVertex
 		screen[i]._ndc_pos.x = ABC[i]->_vertex.x * inv_w;
 		screen[i]._ndc_pos.y = ABC[i]->_vertex.y * inv_w;
 		screen[i]._ndc_pos.z = ABC[i]->_vertex.z * inv_w;
-		screen[i]._screen_pos = InContext.NdcToScreenPostion(screen[i]._ndc_pos);
+		screen[i]._screen_pos = InContext.NDCToScreenPostion(screen[i]._ndc_pos);
 	}
 
 	uint32_t iv0 = 0, iv1 = 1, iv2 = 2;

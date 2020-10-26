@@ -45,6 +45,8 @@ protected:
 		return (cx >= _w || cy >= _h) ? SR_INVALID_INDEX : ((_w * cy + cx) * _bytes_per_pixel);
 	}
 
+	static const float ONE_OVER_255;
+	static const float ONE_OVER_65535;
 protected:
 	uint32_t _w, _h;
 	uint32_t _bytes_per_pixel;

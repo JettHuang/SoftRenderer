@@ -78,15 +78,10 @@ void OutputPNG(const std::shared_ptr<FSR_Buffer2D>& InBuffer2D)
 			float R, G, B, A;
 			InBuffer2D->Read(i, j, R, G, B, A);
 
-			// Replace NaN components with zero. See explanation in Ray Tracing: The Rest of Your Life.
-			if (R != R) R = 0.0f;
-			if (G != G) G = 0.0f;
-			if (B != B) B = 0.0f;
-
 			// Write the translated [0,255] value of each color component.
-			*ptr++ = static_cast<int>(256 * glm::clamp(R, 0.0f, 0.999f));
-			*ptr++ = static_cast<int>(256 * glm::clamp(G, 0.0f, 0.999f));
-			*ptr++ = static_cast<int>(256 * glm::clamp(B, 0.0f, 0.999f));
+			*ptr++ = static_cast<int>(255 * R);
+			*ptr++ = static_cast<int>(255 * G);
+			*ptr++ = static_cast<int>(255 * B);
 		}
 	} // end j
 
@@ -117,7 +112,7 @@ void Example_SingleTriangle()
 	std::shared_ptr<FSR_VertexShader> vs = std::make_shared<FSR_SimpleVertexShader>();
 	std::shared_ptr<FSR_PixelShader> ps = std::make_shared<FSR_SimplePixelShader>();
 
-	ctx.SetRenderTarget(600, 600, 1, true);
+	ctx.SetRenderTarget(600, 600, 1, false);
 	ctx.SetViewport(0, 0, 600, 600);
 	ctx.SetCullFaceMode(EFrontFace::FACE_CW);
 	ctx.SetShader(vs, ps);
@@ -133,7 +128,7 @@ void Example_SingleTriangle()
 	v1._attributes._members[0] = glm::vec3(0.0, 1.0, 0.0);
 	v1._attributes._count = 1;
 
-	v2._vertex = glm::vec3(0.5, 0.5, 1.0);
+	v2._vertex = glm::vec3(0.8, 0.5, 1.0);
 	v2._attributes._members[0] = glm::vec3(0.0, 0.0, 1.0);
 	v2._attributes._count = 1;
 
@@ -487,8 +482,8 @@ void Example_Teapot_Scene()
 
 int main()
 {
-	Example_SingleTriangle();
+	//Example_SingleTriangle();
 	//Example_Multi_Cubes();
-	//Example_Mesh_Scene();
+	Example_Mesh_Scene();
 	//Example_Teapot_Scene();
 }

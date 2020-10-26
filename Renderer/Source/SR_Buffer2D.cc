@@ -7,6 +7,9 @@
 #include "SR_Buffer2D.h"
 
 
+const float FSR_Buffer2D::ONE_OVER_255 = (1.f / 255.f);
+const float FSR_Buffer2D::ONE_OVER_65535 = (1.f / 65535.f);
+
 FSR_Buffer2D::FSR_Buffer2D(uint32_t width, uint32_t height, EPixelFormat pixelformat)
 	: _w(width)
 	, _h(height)
@@ -115,7 +118,7 @@ bool FSR_Buffer2D_U16::Read(uint32_t cx, uint32_t cy, float& R, float& G, float&
 	assert(offset != SR_INVALID_INDEX);
 
 	const uint8_t* pData = _buffer.data() + offset;
-	R = *(reinterpret_cast<const uint16_t*>(pData)) / 65535.f;
+	R = *(reinterpret_cast<const uint16_t*>(pData)) * ONE_OVER_65535;
 	return true;
 }
 
@@ -127,7 +130,7 @@ bool FSR_Buffer2D_U16::Read(uint32_t cx, uint32_t cy, float& Value) const
 	assert(offset != SR_INVALID_INDEX);
 
 	const uint8_t* pData = _buffer.data() + offset;
-	Value = *(reinterpret_cast<const uint16_t*>(pData)) / 65535.f;
+	Value = *(reinterpret_cast<const uint16_t*>(pData)) * ONE_OVER_65535;
 	return true;
 }
 
@@ -238,7 +241,7 @@ bool FSR_Buffer2D_F32::Write(uint32_t cx, uint32_t cy, uint8_t R, uint8_t G, uin
 	assert(offset != SR_INVALID_INDEX);
 
 	uint8_t* pData = _buffer.data() + offset;
-	*(reinterpret_cast<float*>(pData)) = R / 255.f;
+	*(reinterpret_cast<float*>(pData)) = R * ONE_OVER_255;
 	return true;
 }
 
@@ -248,7 +251,7 @@ bool FSR_Buffer2D_F32::Write(uint32_t cx, uint32_t cy, uint16_t& Value)
 	assert(offset != SR_INVALID_INDEX);
 
 	uint8_t* pData = _buffer.data() + offset;
-	*(reinterpret_cast<float*>(pData)) = Value / 65535.f;
+	*(reinterpret_cast<float*>(pData)) = Value * ONE_OVER_65535;
 	return true;
 }
 
@@ -312,14 +315,18 @@ bool FSR_Buffer2D_RGB888::Read(uint32_t cx, uint32_t cy, uint16_t& Value) const
 // maybe normalized [0, 1] before return.
 bool FSR_Buffer2D_RGB888::Read(uint32_t cx, uint32_t cy, float& R, float& G, float& B, float& A) const
 {
-	R = G = B = A = 0.f;
-
 	uint32_t offset = GetElementOffset(cx, cy);
 	assert(offset != SR_INVALID_INDEX);
 
 	const uint8_t* pData = _buffer.data() + offset;
-	R = (*pData) / 255.f;  G = *(pData + 1) / 255.f; B = *(pData + 2) / 255.f;
+	R = *(pData);
+	G = *(pData + 1);
+	B = *(pData + 2);
 
+	R *= ONE_OVER_255;
+	G *= ONE_OVER_255;
+	B *= ONE_OVER_255;
+	A = 0.f;
 	return true;
 }
 
@@ -331,7 +338,7 @@ bool FSR_Buffer2D_RGB888::Read(uint32_t cx, uint32_t cy, float& Value) const
 	assert(offset != SR_INVALID_INDEX);
 
 	const uint8_t* pData = _buffer.data() + offset;
-	Value = (*pData) / 255.f;
+	Value = (*pData) * ONE_OVER_255;
 
 	return true;
 }
@@ -428,7 +435,10 @@ bool FSR_Buffer2D_RGBA8888::Read(uint32_t cx, uint32_t cy, float& R, float& G, f
 	assert(offset != SR_INVALID_INDEX);
 
 	const uint8_t* pData = _buffer.data() + offset;
-	R = *pData / 255.f;  G = *(pData + 1) / 255.f; B = *(pData + 2) / 255.f; A = *(pData + 3) / 255.f;
+	R = *pData * ONE_OVER_255;  
+	G = *(pData + 1) * ONE_OVER_255; 
+	B = *(pData + 2) * ONE_OVER_255; 
+	A = *(pData + 3) * ONE_OVER_255;
 
 	return true;
 }
@@ -441,7 +451,7 @@ bool FSR_Buffer2D_RGBA8888::Read(uint32_t cx, uint32_t cy, float& Value) const
 	assert(offset != SR_INVALID_INDEX);
 
 	const uint8_t* pData = _buffer.data() + offset;
-	Value = (*pData) / 255.f;
+	Value = (*pData) * ONE_OVER_255;
 
 	return true;
 }
@@ -573,9 +583,9 @@ bool FSR_Buffer2D_RGBF32::Write(uint32_t cx, uint32_t cy, uint8_t R, uint8_t G, 
 
 	uint8_t* pData = _buffer.data() + offset;
 	float* pFloat = reinterpret_cast<float*>(pData);
-	*pFloat = R / 255.f;
-	*(pFloat + 1) = G / 255.f;
-	*(pFloat + 2) = B / 255.f;
+	*pFloat = R * ONE_OVER_255;
+	*(pFloat + 1) = G * ONE_OVER_255;
+	*(pFloat + 2) = B * ONE_OVER_255;
 
 	return true;
 }
@@ -586,7 +596,7 @@ bool FSR_Buffer2D_RGBF32::Write(uint32_t cx, uint32_t cy, uint16_t& Value)
 	assert(offset != SR_INVALID_INDEX);
 
 	uint8_t* pData = _buffer.data() + offset;
-	*(reinterpret_cast<float*>(pData)) = Value / 65535.f;
+	*(reinterpret_cast<float*>(pData)) = Value * ONE_OVER_65535;
 
 	return true;
 }
@@ -697,10 +707,10 @@ bool FSR_Buffer2D_RGBAF32::Write(uint32_t cx, uint32_t cy, uint8_t R, uint8_t G,
 
 	uint8_t* pData = _buffer.data() + offset;
 	float* pFloat = reinterpret_cast<float*>(pData);
-	*pFloat = R / 255.f;
-	*(pFloat + 1) = G / 255.f;
-	*(pFloat + 2) = B / 255.f;
-	*(pFloat + 3) = A / 255.f;
+	*pFloat = R * ONE_OVER_255;
+	*(pFloat + 1) = G * ONE_OVER_255;
+	*(pFloat + 2) = B * ONE_OVER_255;
+	*(pFloat + 3) = A * ONE_OVER_255;
 
 	return true;
 }
@@ -711,7 +721,7 @@ bool FSR_Buffer2D_RGBAF32::Write(uint32_t cx, uint32_t cy, uint16_t& Value)
 	assert(offset != SR_INVALID_INDEX);
 
 	uint8_t* pData = _buffer.data() + offset;
-	*(reinterpret_cast<float*>(pData)) = Value / 65535.f;
+	*(reinterpret_cast<float*>(pData)) = Value * ONE_OVER_65535;
 
 	return true;
 }
