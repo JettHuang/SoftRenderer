@@ -54,6 +54,7 @@ public:
 	void ResolveMSAABuffer();
 	std::shared_ptr<FSR_Buffer2D> GetDepthBuffer() const;
 	std::shared_ptr<FSR_Buffer2D> GetColorBuffer(uint32_t InIndex) const;
+	std::shared_ptr<FSR_Buffer2D> GetMSAAColorBuffer(uint32_t InIndex) const;
 
 	// utilities for raster
 	glm::vec3 NDCToScreenPostion(const glm::vec3& ndc) const;

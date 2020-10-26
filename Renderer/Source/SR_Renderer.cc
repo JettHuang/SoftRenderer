@@ -273,6 +273,7 @@ static void RasterizeTriangleNormal(const FSR_Context& InContext, const FSRVerte
 		return; // DISCARD!
 	}
 
+	const float kOneOverE012 = 1.f / E012;
 	const FSR_RasterizedVert& SV0 = screen[iv0];
 	const FSR_RasterizedVert& SV1 = screen[iv1];
 	const FSR_RasterizedVert& SV2 = screen[iv2];
@@ -331,8 +332,8 @@ static void RasterizeTriangleNormal(const FSR_Context& InContext, const FSRVerte
 			}
 
 			// perspective correct interpolate
-			const float w0 = E12 / E012;
-			const float w1 = E20 / E012;
+			const float w0 = E12 * kOneOverE012;
+			const float w1 = E20 * kOneOverE012;
 			const float w2 = (1.f - w0 - w1); // fixed for (w0 + w1 + w2) != 1.0
 
 			const float depth = w0 * SV0._screen_pos.z + w1 * SV1._screen_pos.z + w2 * SV2._screen_pos.z;
@@ -431,6 +432,7 @@ static void RasterizeTriangleMSAA4(const FSR_Context& InContext, const FSRVertex
 		return; // DISCARD!
 	}
 
+	const float kOneOverE012 = 1.f / E012;
 	const FSR_RasterizedVert& SV0 = screen[iv0];
 	const FSR_RasterizedVert& SV1 = screen[iv1];
 	const FSR_RasterizedVert& SV2 = screen[iv2];
@@ -494,8 +496,8 @@ static void RasterizeTriangleMSAA4(const FSR_Context& InContext, const FSRVertex
 				}
 
 				// perspective correct interpolate
-				const float w0 = E12 / E012;
-				const float w1 = E20 / E012;
+				const float w0 = E12 * kOneOverE012;
+				const float w1 = E20 * kOneOverE012;
 				const float w2 = (1.f - w0 - w1); // fixed for (w0 + w1 + w2) != 1.0
 
 				const float depth = w0 * SV0._screen_pos.z + w1 * SV1._screen_pos.z + w2 * SV2._screen_pos.z;
@@ -530,9 +532,9 @@ static void RasterizeTriangleMSAA4(const FSR_Context& InContext, const FSRVertex
 				float E20 = EdgeFunction(SV2._screen_pos, SV0._screen_pos, P);
 				float E01 = EdgeFunction(SV0._screen_pos, SV1._screen_pos, P);
 				// perspective correct interpolate
-				const float w0 = E12 / E012;
-				const float w1 = E20 / E012;
-				const float w2 = E01 / E012;
+				const float w0 = E12 * kOneOverE012;
+				const float w1 = E20 * kOneOverE012;
+				const float w2 = (1.f - w0 - w1); // fixed for (w0 + w1 + w2) != 1.0
 				const float W = 1.f / (w0 * SV0._inv_w + w1 * SV1._inv_w + w2 * SV2._inv_w);
 
 				// attributes

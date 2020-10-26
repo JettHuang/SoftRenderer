@@ -151,6 +151,16 @@ std::shared_ptr<FSR_Buffer2D> FSR_Context::GetColorBuffer(uint32_t InIndex) cons
 	return nullptr;
 }
 
+std::shared_ptr<FSR_Buffer2D> FSR_Context::GetMSAAColorBuffer(uint32_t InIndex) const
+{
+	if (InIndex < MAX_MRT_COUNT)
+	{
+		return _rt_colors_msaa[InIndex];
+	}
+
+	return nullptr;
+}
+
 void FSR_Context::ResolveMSAABuffer()
 {
 	if (!_bEnableMSAA)
@@ -165,12 +175,12 @@ void FSR_Context::ResolveMSAABuffer()
 
 	for (uint32_t cy = 0; cy < h; ++cy)
 	{
-		for (uint32_t cx = 0; cx < w; ++cx)
+		for (uint32_t cx = 0, msaa_cx = 0; cx < w; ++cx, msaa_cx += _MSAASamplesNum)
 		{
 			float sum = 0.f, d = 0.f;
 			for (int32_t i = 0; i < _MSAASamplesNum; ++i)
 			{
-				_rt_depth_msaa->Read(cx + i, cy, d);
+				_rt_depth_msaa->Read(msaa_cx + i, cy, d);
 				sum += d;
 			}
 
@@ -184,13 +194,13 @@ void FSR_Context::ResolveMSAABuffer()
 		{
 			for (uint32_t cy = 0; cy < h; ++cy)
 			{
-				for (uint32_t cx = 0; cx < w; ++cx)
+				for (uint32_t cx = 0, msaa_cx = 0; cx < w; ++cx, msaa_cx += _MSAASamplesNum)
 				{
 					float R = 0.f, G = 0.f, B = 0.f, A = 0.f;
 					float r, g, b, a;
 					for (int32_t i = 0; i < _MSAASamplesNum; ++i)
 					{
-						_rt_colors_msaa[rt]->Read(cx + i, cy, r, g, b, a);
+						_rt_colors_msaa[rt]->Read(msaa_cx + i, cy, r, g, b, a);
 						R += r;
 						G += g;
 						B += b;
@@ -242,10 +252,11 @@ bool FSR_Context::DepthTestAndOverrideMSAA(uint32_t cx, uint32_t cy, float InDep
 	if (_rt_depth_msaa)
 	{
 		float PrevDepth = 0.f;
-		_rt_depth_msaa->Read(cx + InSampleIndex, cy, PrevDepth);
+		uint32_t cx_msaa = cx * _MSAASamplesNum + InSampleIndex;
+		_rt_depth_msaa->Read(cx_msaa, cy, PrevDepth);
 		if (InDepth <= PrevDepth)
 		{
-			_rt_depth_msaa->Write(cx + InSampleIndex, cy, InDepth);
+			_rt_depth_msaa->Write(cx_msaa, cy, InDepth);
 			return true;
 		}
 		else
@@ -272,6 +283,7 @@ void FSR_Context::OutputAndMergeColor(int32_t cx, int32_t cy, FSRPixelShaderOutp
 
 void FSR_Context::OutputAndMergeColorMSAA(int32_t cx, int32_t cy, FSRPixelShaderOutput& InPixelOutput, int32_t InBitMask) const
 {
+	const uint32_t cx_msaa = cx * _MSAASamplesNum;
 
 	for (uint32_t k = 0; k < InPixelOutput._color_cnt; ++k)
 	{
@@ -279,12 +291,11 @@ void FSR_Context::OutputAndMergeColorMSAA(int32_t cx, int32_t cy, FSRPixelShader
 		if (rt)
 		{
 			const glm::vec4& color = InPixelOutput._colors[k];
-
 			for (int32_t index = 0; index < _MSAASamplesNum; ++index)
 			{
 				if (InBitMask & (0x01 << index))
 				{
-					rt->Write(cx + index, cy, color.r, color.g, color.b, color.a);
+					rt->Write(cx_msaa + index, cy, color.r, color.g, color.b, color.a);
 				}
 			} // end for index
 		}

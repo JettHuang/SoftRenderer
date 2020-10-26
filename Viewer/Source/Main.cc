@@ -95,6 +95,75 @@ void OutputPNG(const std::shared_ptr<FSR_Buffer2D>& InBuffer2D)
 	delete[] rgb;
 }
 
+void OutputMSAA4PNG(const std::shared_ptr<FSR_Buffer2D>& InBuffer2D)
+{
+	int32_t image_width, image_height;
+
+	if (!InBuffer2D)
+	{
+		std::cerr << "OutputPNG failed. buffer2d is null" << std::endl;
+		return;
+	}
+
+	image_width = InBuffer2D->Width() / 4;
+	image_height = InBuffer2D->Height();
+	if (image_width <= 0 || image_height <= 0)
+	{
+		std::cerr << "OutputPNG failed. image_width or image_height is invalid" << std::endl;
+		return;
+	}
+
+	unsigned char* rgb = new unsigned char[image_width * image_height * 4 * 3];
+	if (!rgb) {
+		return;
+	}
+
+	unsigned char* ptr = rgb;
+	for (int32_t j = image_height - 1; j >= 0; --j)
+	{
+		for (int32_t i = 0; i < image_width; ++i)
+		{
+			float R, G, B, A;
+
+			InBuffer2D->Read(i*4+3, j, R, G, B, A);
+			// Write the translated [0,255] value of each color component.
+			*ptr++ = static_cast<int>(255 * R);
+			*ptr++ = static_cast<int>(255 * G);
+			*ptr++ = static_cast<int>(255 * B);
+
+			InBuffer2D->Read(i*4+2, j, R, G, B, A);
+			// Write the translated [0,255] value of each color component.
+			*ptr++ = static_cast<int>(255 * R);
+			*ptr++ = static_cast<int>(255 * G);
+			*ptr++ = static_cast<int>(255 * B);
+		}
+		for (int32_t i = 0; i < image_width; ++i)
+		{
+			float R, G, B, A;
+
+			InBuffer2D->Read(i*4, j, R, G, B, A);
+			// Write the translated [0,255] value of each color component.
+			*ptr++ = static_cast<int>(255 * R);
+			*ptr++ = static_cast<int>(255 * G);
+			*ptr++ = static_cast<int>(255 * B);
+
+			InBuffer2D->Read(i*4+1, j, R, G, B, A);
+			// Write the translated [0,255] value of each color component.
+			*ptr++ = static_cast<int>(255 * R);
+			*ptr++ = static_cast<int>(255 * G);
+			*ptr++ = static_cast<int>(255 * B);
+		}
+	} // end j
+
+	FILE* fp = fopen("outputMSAA.png", "wb");
+	if (fp)
+	{
+		svpng(fp, image_width*2, image_height*2, rgb, 0);
+		fclose(fp);
+	}
+
+	delete[] rgb;
+}
 
 void OutputImage(const std::shared_ptr<FSR_Buffer2D>& InBuffer2D)
 {
@@ -231,9 +300,11 @@ void Example_Multi_Cubes()
 		5,2,1,
 		2,7,3,
 		0,7,4,
+
 		1,2,3,
 		7,6,5,
 		4,5,1,
+
 		5,6,2,
 		2,6,7, 
 		0,3,7
@@ -251,6 +322,8 @@ void Example_Multi_Cubes()
 	v0._attributes._count = 1;
 	v1._attributes._count = 1;
 	v2._attributes._count = 1;
+
+	int32_t nTriangleCount = 0;
 	for (size_t n = 0; n < objects.size(); n++)
 	{
 		glm::mat4x4 modelview = view * objects[n];
@@ -269,6 +342,7 @@ void Example_Multi_Cubes()
 			v2._attributes._members[0] = color;
 
 			FSR_Renderer::DrawTriangle(ctx, v0, v1, v2);
+			nTriangleCount++;
 		} // end for idx
 	} // end for n
 
@@ -276,6 +350,7 @@ void Example_Multi_Cubes()
 
 	ctx.ResolveMSAABuffer();
 	OutputImage(ctx.GetColorBuffer(0));
+	OutputMSAA4PNG(ctx.GetMSAAColorBuffer(0));
 
 #if SR_ENABLE_PERFORMACE_STAT
 	ctx._stats->DisplayStats(std::cerr);
@@ -483,7 +558,7 @@ void Example_Teapot_Scene()
 int main()
 {
 	//Example_SingleTriangle();
-	//Example_Multi_Cubes();
-	Example_Mesh_Scene();
+	Example_Multi_Cubes();
+	//Example_Mesh_Scene();
 	//Example_Teapot_Scene();
 }
