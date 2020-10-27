@@ -58,15 +58,27 @@ void FDemoScene_Cubes::DrawScene(FSR_Context& ctx, const glm::mat4x4& InViewMat,
 		0,3,7
 	};
 
+	static const glm::vec3 axies[] =
+	{
+		glm::vec3(0, 1, 0),
+		glm::vec3(1, 0, 0),
+		glm::vec3(0, 1, 0),
+		glm::vec3(0, 0, 1)
+	};
+	static float rot_speed = 15.f;
+
 	// Loop over objects in the scene
 	FSRVertex v0, v1, v2;
 	v0._attributes._count = 1;
 	v1._attributes._count = 1;
 	v2._attributes._count = 1;
 
+	float delt_rot = rot_speed * InDeltaSeconds;
 	for (size_t n = 0; n < _objects.size(); n++)
 	{
-		glm::mat4x4 modelview = InViewMat * _objects[n];
+		_object_rots[n] += delt_rot;
+		glm::mat4x4 M0 = glm::rotate(_objects[n], glm::radians(_object_rots[n]), axies[n]);
+		glm::mat4x4 modelview = InViewMat * M0;
 		ctx.SetModelViewMatrix(modelview);
 
 		// Loop over triangles in a given object and rasterize them one by one
@@ -95,21 +107,19 @@ void FDemoScene_Cubes::InitializeSceneObjects(std::vector<glm::mat4>& objects)
 	const glm::mat4 identity(1.f);
 
 	glm::mat4 M0 = glm::translate(identity, glm::vec3(0, 0, 2.f));
-	M0 = glm::rotate(M0, glm::radians(45.f), glm::vec3(0, 1, 0));
-
 	glm::mat4 M1 = glm::translate(identity, glm::vec3(-3.75f, 0, 0));
-	M1 = glm::rotate(M1, glm::radians(30.f), glm::vec3(1, 0, 0));
-
 	glm::mat4 M2 = glm::translate(identity, glm::vec3(3.75f, 0, 0));
-	M2 = glm::rotate(M2, glm::radians(60.f), glm::vec3(0, 1, 0));
-
 	glm::mat4 M3 = glm::translate(identity, glm::vec3(0, 0, -2.f));
-	M3 = glm::rotate(M3, glm::radians(90.f), glm::vec3(0, 0, 1));
-
+	
 	// Change the order of cubes being rendered, see how it changes with and without depth test
 	objects.push_back(M0);
 	objects.push_back(M1);
 	objects.push_back(M2);
 	objects.push_back(M3);
+
+	_object_rots.push_back(10.f);
+	_object_rots.push_back(30.f);
+	_object_rots.push_back(40.f);
+	_object_rots.push_back(60.f);
 }
 

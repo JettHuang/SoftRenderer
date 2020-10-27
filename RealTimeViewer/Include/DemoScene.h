@@ -32,4 +32,5 @@ protected:
 	std::shared_ptr<FSR_PixelShader> _ps;
 
 	std::vector<glm::mat4> _objects;
+	std::vector<float>	   _object_rots;
 };
