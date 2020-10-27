@@ -33,6 +33,10 @@ public:
 	virtual bool Write(uint32_t cx, uint32_t cy, float Value) { return false; }
 	virtual void Clear(float R, float G, float B, float A) {}
 
+	// get row pointer
+	virtual const uint8_t* GetRowData(uint32_t cy) const { return _buffer.data() + (cy * _w * _bytes_per_pixel); }
+	virtual uint32_t GetBytesPerRow() const { return _w* _bytes_per_pixel; };
+
 	// sample element
 	virtual bool Sample2DNearest(float u, float v, float& R, float& G, float& B, float& A) const;
 	virtual bool Sample2DLinear(float u, float v, float& R, float& G, float& B, float& A) const;

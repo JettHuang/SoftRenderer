@@ -520,7 +520,7 @@ bool FSR_Buffer2D_RGBA8888::Write(uint32_t cx, uint32_t cy, float R, float G, fl
 	*pData = glm::clamp<uint8_t>(uint8_t(R * 255), 0, 255);
 	*(pData + 1) = glm::clamp<uint8_t>(uint8_t(G * 255), 0, 255);
 	*(pData + 2) = glm::clamp<uint8_t>(uint8_t(B * 255), 0, 255);
-	*(pData + 2) = glm::clamp<uint8_t>(uint8_t(A * 255), 0, 255);
+	*(pData + 3) = glm::clamp<uint8_t>(uint8_t(A * 255), 0, 255);
 
 	return true;
 }

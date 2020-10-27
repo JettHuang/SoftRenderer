@@ -27,8 +27,7 @@ bool FApp::Initialize(const char* InCaption, int32_t InWidth, int32_t InHeight)
 		printf("\t%s\n", SDL_GetPixelFormatName(info.texture_formats[i]));
 	}
 
-	_SDLRenderTexture = SDL_CreateTexture(_SDLRenderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_TARGET, _Width, _Height);
-	_ColorBuffer.resize(_Width * _Height * 4);
+	_SDLRenderTexture = SDL_CreateTexture(_SDLRenderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, _Width, _Height);
 
 	_DemoScene = std::make_shared<FDemoScene_Cubes>();
 	if (_DemoScene)
@@ -39,6 +38,18 @@ bool FApp::Initialize(const char* InCaption, int32_t InWidth, int32_t InHeight)
 	_SR_Ctx.SetRenderTarget(_Width, _Height, 1, false);
 	_SR_Ctx.SetViewport(0, 0, _Width, _Height);
 	_SR_Ctx.SetCullFaceMode(EFrontFace::FACE_CCW);
+
+	// TO REMOVE FROM HERE
+	// Build view & projection matrices (right-handed system)
+	const float nearPlane = 0.1f;
+	const float farPlane = 100.f;
+	const glm::vec3 eye(0, 3.75, 6.5);
+	const glm::vec3 lookat(0, 0, 0);
+	const glm::vec3 up(0, 1, 0);
+
+	const glm::mat4 proj = glm::perspective(glm::radians(60.f), static_cast<float>(_Width) / static_cast<float>(_Height), nearPlane, farPlane);
+	_viewMat = glm::lookAt(eye, lookat, up);
+	_SR_Ctx.SetProjectionMatrix(proj);
 
 	return true;
 }
@@ -132,42 +143,35 @@ void FApp::OnWndClosed()
 	SDL_PushEvent(&event);
 }
 
-void FApp::ClearCanvas()
-{
-	SDL_SetRenderDrawColor(_SDLRenderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
-	SDL_RenderClear(_SDLRenderer);
-}
-
 void FApp::Present()
 {
-	SDL_UpdateTexture(_SDLRenderTexture, nullptr, _ColorBuffer.data(), _Width * 4);
-
 	SDL_RenderCopy(_SDLRenderer, _SDLRenderTexture, nullptr, nullptr);
 	SDL_RenderPresent(_SDLRenderer);
 }
 
 void FApp::SwapChain(const std::shared_ptr<FSR_Buffer2D>& InBuffer2D)
 {
-	uint32_t image_width = InBuffer2D->Width();
-	uint32_t image_height = InBuffer2D->Height();
-	
+	const uint32_t image_width = InBuffer2D->Width();
+	const uint32_t image_height = InBuffer2D->Height();
+	const uint32_t bytes_per_row = InBuffer2D->GetBytesPerRow();
+
 	assert(image_width == _Width && image_height == _Height);
+	assert(InBuffer2D->Format() == EPixelFormat::PIXEL_FORMAT_RGBA8888);
+	
+	uint8_t* pBuffer = NULL;
+	int32_t pitch = 0;
+	SDL_LockTexture(_SDLRenderTexture, NULL, (void**)&pBuffer, &pitch);
+	assert(bytes_per_row <= pitch);
 
-	uint8_t *ptr = _ColorBuffer.data();
-	for (int32_t j = image_height - 1; j >= 0; --j)
+	for (int32_t j = image_height - 1; j >= 0; --j, pBuffer+=pitch)
 	{
-		for (int32_t i = 0; i < image_width; ++i)
-		{
-			float R, G, B, A;
-			InBuffer2D->Read(i, j, R, G, B, A);
-
-			// Write the translated [0,255] value of each color component.
-			*ptr++ = static_cast<int>(255 * R);
-			*ptr++ = static_cast<int>(255 * G);
-			*ptr++ = static_cast<int>(255 * B);
-			*ptr++ = 255;
-		}
+		const uint8_t* src = InBuffer2D->GetRowData(j);
+		uint8_t* dst = pBuffer;
+		
+		memcpy(dst, src, bytes_per_row);
 	} // end j
+
+	SDL_UnlockTexture(_SDLRenderTexture);
 }
 
 ////////////////////////////////////////////////////////
@@ -212,18 +216,7 @@ void FApp::Tick(float InDeltaSeconds)
 	_SR_Ctx.ClearRenderTarget(glm::vec4(0, 0, 0, 0));
 	if (_DemoScene)
 	{
-		// Build view & projection matrices (right-handed system)
-		const float nearPlane = 0.1f;
-		const float farPlane = 100.f;
-		const glm::vec3 eye(0, 3.75, 6.5);
-		const glm::vec3 lookat(0, 0, 0);
-		const glm::vec3 up(0, 1, 0);
-
-		const glm::mat4 view = glm::lookAt(eye, lookat, up);
-		const glm::mat4 proj = glm::perspective(glm::radians(60.f), static_cast<float>(_Width) / static_cast<float>(_Height), nearPlane, farPlane);
-		_SR_Ctx.SetProjectionMatrix(proj);
-
-		_DemoScene->DrawScene(_SR_Ctx, view, InDeltaSeconds);
+		_DemoScene->DrawScene(_SR_Ctx, _viewMat, InDeltaSeconds);
 	}
 	_SR_Ctx.EndFrame();
 

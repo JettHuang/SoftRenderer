@@ -56,7 +56,7 @@ void FSR_Context::SetRenderTarget(uint32_t w, uint32_t h, uint32_t nCount, bool 
 	nCount = std::min<uint32_t>(nCount, MAX_MRT_COUNT);
 	for (uint32_t i=0; i<nCount; ++i)
 	{
-		_rt_colors[i] = FSR_Buffer2D_Helper::CreateBuffer2D(w, h, EPixelFormat::PIXEL_FORMAT_RGBAF32);
+		_rt_colors[i] = FSR_Buffer2D_Helper::CreateBuffer2D(w, h, EPixelFormat::PIXEL_FORMAT_RGBA8888);
 	}
 
 	_bEnableMSAA = InbEnableMSAA;
@@ -65,7 +65,7 @@ void FSR_Context::SetRenderTarget(uint32_t w, uint32_t h, uint32_t nCount, bool 
 		_rt_depth_msaa = FSR_Buffer2D_Helper::CreateBuffer2D(w * _MSAASamplesNum, h, EPixelFormat::PIXEL_FORMAT_F32);
 		for (uint32_t i = 0; i < nCount; ++i)
 		{
-			_rt_colors_msaa[i] = FSR_Buffer2D_Helper::CreateBuffer2D(w * _MSAASamplesNum, h, EPixelFormat::PIXEL_FORMAT_RGBAF32);
+			_rt_colors_msaa[i] = FSR_Buffer2D_Helper::CreateBuffer2D(w * _MSAASamplesNum, h, EPixelFormat::PIXEL_FORMAT_RGBA8888);
 		}
 	}
 }

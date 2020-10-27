@@ -291,7 +291,9 @@ static void RasterizeTriangleNormal(const FSR_Context& InContext, const FSRVerte
 	glm::vec3 P(0, 0, 0);
 	FSRPixelShaderInput PixelInput;
 	FSRPixelShaderOutput PixelOutput;
-	
+	// set output color count only once
+	PixelOutput._color_cnt = InContext._ps->OutputColorCount();
+
 	for (int32_t cy = Y0; cy < Y1; ++cy)
 	{
 		for (int32_t cx = X0; cx < X1; ++cx)
@@ -451,7 +453,9 @@ static void RasterizeTriangleMSAA4(const FSR_Context& InContext, const FSRVertex
 	glm::vec3 P(0, 0, 0);
 	FSRPixelShaderInput PixelInput;
 	FSRPixelShaderOutput PixelOutput;
-
+	// set output color count only once
+	PixelOutput._color_cnt = InContext._ps->OutputColorCount();
+	
 	for (int32_t cy = Y0; cy < Y1; ++cy)
 	{
 		for (int32_t cx = X0; cx < X1; ++cx)

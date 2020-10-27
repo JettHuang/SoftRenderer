@@ -26,6 +26,7 @@ public:
 	virtual ~FSR_PixelShader() {}
 
 	virtual void Process(const FSR_Context& InContext, const FSRPixelShaderInput &Input, FSRPixelShaderOutput &Output) = 0;
+	virtual uint32_t OutputColorCount() { return 1; }
 };
 
 
@@ -40,6 +41,7 @@ class FSR_SimplePixelShader : public FSR_PixelShader
 {
 public:
 	virtual void Process(const FSR_Context& InContext, const FSRPixelShaderInput& Input, FSRPixelShaderOutput& Output) override;
+	virtual uint32_t OutputColorCount() override { return 1; }
 };
 
 // diffuse mesh vs & ps
@@ -53,4 +55,5 @@ class FSR_SimpleMeshPixelShader : public FSR_PixelShader
 {
 public:
 	virtual void Process(const FSR_Context& InContext, const FSRPixelShaderInput& Input, FSRPixelShaderOutput& Output) override;
+	virtual uint32_t OutputColorCount() override { return 1; }
 };

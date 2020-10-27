@@ -15,8 +15,12 @@ void FSR_SimpleVertexShader::Process(const FSR_Context& InContext, const FSRVert
 
 void FSR_SimplePixelShader::Process(const FSR_Context& InContext, const FSRPixelShaderInput& Input, FSRPixelShaderOutput& Output)
 {
-	Output._colors[0] = glm::vec4(Input._attributes._members[0], 1.f);
-	Output._color_cnt = 1;
+	const glm::vec3 &V3 = Input._attributes._members[0];
+	glm::vec4& color = Output._colors[0];
+	color.r = V3.x;
+	color.g = V3.y;
+	color.b = V3.z;
+	color.a = 1.f;
 }
 
 // mesh vs & ps with diffuse texture
@@ -39,7 +43,9 @@ void FSR_SimpleMeshPixelShader::Process(const FSR_Context& InContext, const FSRP
 	{
 		InContext._material->_diffuse_tex->Sample2DNearest(uv.x, uv.y, R, G, B, A);
 	}
-	Output._colors[0] = glm::vec4(R, G, B, A);
-	Output._color_cnt = 1;
+	Output._colors[0].r = R;
+	Output._colors[0].g = G;
+	Output._colors[0].b = B;
+	Output._colors[0].a = A;
 #endif
 }

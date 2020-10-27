@@ -39,9 +39,8 @@ protected:
 	void OnWndClosed();
 
 	// canvas operations
-	void ClearCanvas();
-	void Present();
 	void SwapChain(const std::shared_ptr<FSR_Buffer2D>& InBuffer2D);
+	void Present();
 
 protected:
 	SDL_Window* _SDLWindow;
@@ -50,9 +49,7 @@ protected:
 	uint32_t _Width;
 	uint32_t _Height;
 
-	// Color buffer that SDL will use to present frame buffer content
-	std::vector<uint8_t> _ColorBuffer;
-
 	FSR_Context	_SR_Ctx;
 	std::shared_ptr<FDemoScene> _DemoScene;
+	glm::mat4 _viewMat;
 };
