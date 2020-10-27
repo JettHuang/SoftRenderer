@@ -2,6 +2,7 @@
 //
 
 #include "App.h"
+#include "svpng.inc"
 
 
 bool FApp::Initialize(const char* InCaption, int32_t InWidth, int32_t InHeight)
@@ -30,6 +31,15 @@ bool FApp::Initialize(const char* InCaption, int32_t InWidth, int32_t InHeight)
 	_ColorBuffer.resize(_Width * _Height * 4);
 
 	_DemoScene = std::make_shared<FDemoScene_Cubes>();
+	if (_DemoScene)
+	{
+		_DemoScene->Init();
+	}
+
+	_SR_Ctx.SetRenderTarget(_Width, _Height, 1, false);
+	_SR_Ctx.SetViewport(0, 0, _Width, _Height);
+	_SR_Ctx.SetCullFaceMode(EFrontFace::FACE_CCW);
+
 	return true;
 }
 
@@ -135,10 +145,36 @@ void FApp::Present()
 	SDL_RenderCopy(_SDLRenderer, _SDLRenderTexture, nullptr, nullptr);
 	SDL_RenderPresent(_SDLRenderer);
 }
-////////////////////////////////////////////////////////
 
+void FApp::SwapChain(const std::shared_ptr<FSR_Buffer2D>& InBuffer2D)
+{
+	uint32_t image_width = InBuffer2D->Width();
+	uint32_t image_height = InBuffer2D->Height();
+	
+	assert(image_width == _Width && image_height == _Height);
+
+	uint8_t *ptr = _ColorBuffer.data();
+	for (int32_t j = image_height - 1; j >= 0; --j)
+	{
+		for (int32_t i = 0; i < image_width; ++i)
+		{
+			float R, G, B, A;
+			InBuffer2D->Read(i, j, R, G, B, A);
+
+			// Write the translated [0,255] value of each color component.
+			*ptr++ = static_cast<int>(255 * R);
+			*ptr++ = static_cast<int>(255 * G);
+			*ptr++ = static_cast<int>(255 * B);
+			*ptr++ = 255;
+		}
+	} // end j
+}
+
+////////////////////////////////////////////////////////
 void FApp::MainLoop()
 {
+	char szCaption[256];
+
 	bool bRequestQuit = false;
 
 	Uint32 LastTicks = SDL_GetTicks();
@@ -163,12 +199,39 @@ void FApp::MainLoop()
 		LastTicks = CurTicks;
 
 		Tick(ElapseSeconds);
+
+		sprintf(szCaption, "RealTimeViewer  fps:%.2f", 1.f / ElapseSeconds);
+		SDL_SetWindowTitle(_SDLWindow, szCaption);
 	} // end while
 }
 
 void FApp::Tick(float InDeltaSeconds)
 {
-	ClearCanvas();
+	_SR_Ctx.BeginFrame();
 
+	_SR_Ctx.ClearRenderTarget(glm::vec4(0, 0, 0, 0));
+	if (_DemoScene)
+	{
+		// Build view & projection matrices (right-handed system)
+		const float nearPlane = 0.1f;
+		const float farPlane = 100.f;
+		const glm::vec3 eye(0, 3.75, 6.5);
+		const glm::vec3 lookat(0, 0, 0);
+		const glm::vec3 up(0, 1, 0);
+
+		const glm::mat4 view = glm::lookAt(eye, lookat, up);
+		const glm::mat4 proj = glm::perspective(glm::radians(60.f), static_cast<float>(_Width) / static_cast<float>(_Height), nearPlane, farPlane);
+		_SR_Ctx.SetProjectionMatrix(proj);
+
+		_DemoScene->DrawScene(_SR_Ctx, view, InDeltaSeconds);
+	}
+	_SR_Ctx.EndFrame();
+
+	// update color buffer
+	const std::shared_ptr<FSR_Buffer2D>& Buffer2d = _SR_Ctx.GetColorBuffer(0);
+	assert(Buffer2d);
+
+	SwapChain(Buffer2d);
 	Present();
 }
+

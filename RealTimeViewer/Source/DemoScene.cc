@@ -17,6 +17,8 @@ void FDemoScene_Cubes::Init()
 
 void FDemoScene_Cubes::DrawScene(FSR_Context& ctx, const glm::mat4x4& InViewMat, float InDeltaSeconds)
 {
+	ctx.SetShader(_vs, _ps);
+
 	// objects
 	static const glm::vec3 vertices[] =
 	{
