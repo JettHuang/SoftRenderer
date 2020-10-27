@@ -161,6 +161,20 @@ std::shared_ptr<FSR_Buffer2D> FSR_Context::GetMSAAColorBuffer(uint32_t InIndex) 
 	return nullptr;
 }
 
+void FSR_Context::BeginFrame()
+{
+#if SR_ENABLE_PERFORMACE_STAT
+	if (_stats) {
+		_stats->Reset();
+	}
+#endif
+}
+
+void FSR_Context::EndFrame()
+{
+	ResolveMSAABuffer();
+}
+
 void FSR_Context::ResolveMSAABuffer()
 {
 	if (!_bEnableMSAA)

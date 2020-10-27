@@ -185,6 +185,8 @@ void Example_SingleTriangle()
 	ctx.SetViewport(0, 0, 600, 600);
 	ctx.SetCullFaceMode(EFrontFace::FACE_CW);
 	ctx.SetShader(vs, ps);
+	
+	ctx.BeginFrame();
 	ctx.ClearRenderTarget(glm::vec4(0, 0, 0, 0));
 
 	FSRVertex v0, v1, v2, v3;
@@ -208,7 +210,7 @@ void Example_SingleTriangle()
 	//FSR_Renderer::DrawTriangle(ctx, v0, v1, v2);
 	FSR_Renderer::DrawTriangle(ctx, v0, v2, v3);
 
-	ctx.ResolveMSAABuffer();
+	ctx.EndFrame();
 	OutputImage(ctx.GetColorBuffer(0));
 
 #if SR_ENABLE_PERFORMACE_STAT
@@ -256,6 +258,8 @@ void Example_Multi_Cubes()
 	ctx.SetViewport(0, 0, kWidth, kHeight);
 	ctx.SetCullFaceMode(EFrontFace::FACE_CCW);
 	ctx.SetShader(vs, ps);
+
+	ctx.BeginFrame();
 	ctx.ClearRenderTarget(glm::vec4(0, 0, 0, 0));
 	// setup camera
 	// Build view & projection matrices (right-handed sysem)
@@ -348,7 +352,7 @@ void Example_Multi_Cubes()
 
 	std::cerr << " Draw Cubes Elapse microseconds: " << PerfCounter.EndPerf() << std::endl;
 
-	ctx.ResolveMSAABuffer();
+	ctx.EndFrame();
 	OutputImage(ctx.GetColorBuffer(0));
 	OutputMSAA4PNG(ctx.GetMSAAColorBuffer(0));
 
@@ -370,6 +374,8 @@ void Example_Mesh_Scene()
 	ctx.SetViewport(0, 0, kWidth, kHeight);
 	ctx.SetCullFaceMode(EFrontFace::FACE_CCW);
 	ctx.SetShader(vs, ps);
+
+	ctx.BeginFrame();
 	ctx.ClearRenderTarget(glm::vec4(0, 0, 0, 0));
 	// setup camera
 	// Build view & projection matrices (right-handed sysem)
@@ -400,6 +406,7 @@ void Example_Mesh_Scene()
 	FSR_Renderer::DrawMesh(ctx, *SceneMesh);
 	std::cerr << " Draw Mesh Elapse microseconds: " << PerfCounter.EndPerf() << std::endl;
 
+	ctx.EndFrame();
 	// ouput image
 	OutputImage(ctx.GetColorBuffer(0));
 
@@ -500,6 +507,8 @@ void Example_Teapot_Scene()
 	ctx.SetViewport(0, 0, kWidth, kHeight);
 	ctx.SetCullFaceMode(EFrontFace::FACE_CCW);
 	ctx.SetShader(vs, ps);
+
+	ctx.BeginFrame();
 	ctx.ClearRenderTarget(glm::vec4(0, 0, 0, 0));
 	// setup camera
 	// Build view & projection matrices (right-handed sysem)
@@ -547,6 +556,7 @@ void Example_Teapot_Scene()
 	
 	std::cerr << " Draw Mesh Elapse microseconds: " << PerfCounter.EndPerf() << std::endl;
 
+	ctx.EndFrame();
 	// ouput image
 	OutputImage(ctx.GetColorBuffer(0));
 

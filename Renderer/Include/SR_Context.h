@@ -13,12 +13,6 @@
 
 #define MSAA_SAMPLES		4
 
-#define MSAA_SAMPLE_0		0
-#define MSAA_SAMPLE_1		1
-#define MSAA_SAMPLE_2		2
-#define MSAA_SAMPLE_3		3
-
-
 // render context
 class FSR_Context
 {
@@ -50,8 +44,11 @@ public:
 		_ps = InPs;
 	}
 
+	// begin frame
+	void BeginFrame();
+	void EndFrame();
+
 	// get frame-buffer
-	void ResolveMSAABuffer();
 	std::shared_ptr<FSR_Buffer2D> GetDepthBuffer() const;
 	std::shared_ptr<FSR_Buffer2D> GetColorBuffer(uint32_t InIndex) const;
 	std::shared_ptr<FSR_Buffer2D> GetMSAAColorBuffer(uint32_t InIndex) const;
@@ -63,8 +60,11 @@ public:
 	bool DepthTestAndOverrideMSAA(uint32_t cx, uint32_t cy, float InDepth, int32_t InSampleIndex) const;
 	void OutputAndMergeColor(int32_t cx, int32_t cy, FSRPixelShaderOutput& InPixelOutput) const;
 	void OutputAndMergeColorMSAA(int32_t cx, int32_t cy, FSRPixelShaderOutput& InPixelOutput, int32_t InSamplesBitMask) const;
+
 protected:
 	void UpdateMVP();
+	void ResolveMSAABuffer();
+
 public:
 	FSR_Rectangle	_viewport_rect;
 	
