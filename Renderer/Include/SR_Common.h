@@ -71,7 +71,11 @@ struct FSRVertexAttributes
 	glm::vec3		_members[MAX_ATTRIBUTES_COUNT];
 	uint32_t		_count;
 
-	FSRVertexAttributes() : _count(0) {}
+	FSRVertexAttributes() : _count(0) 
+	{
+		memset(_members, 0, sizeof(_members));
+	}
+
 	FSRVertexAttributes(const FSRVertexAttributes& InOther)
 	{
 		Copy(InOther);

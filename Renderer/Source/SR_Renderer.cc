@@ -203,25 +203,27 @@ inline void InterpolateVertexAttributes(const FSRVertexAttributes& V0, float w0,
 	float W,
 	FSRVertexAttributes& Output)
 {
+#if 0 // before optimize
 	for (uint32_t k = 0; k < V0._count; ++k)
 	{
-#if 0
 		Output._members[k] = (V0._members[k] * w0 +
 			V1._members[k] * w1 +
 			V2._members[k] * w2) * W;
+	}
 #else
-		const glm::vec3& a = V0._members[k];
-		const glm::vec3& b = V1._members[k];
-		const glm::vec3& c = V2._members[k];
-		glm::vec3& o = Output._members[k];
+
+	for (uint32_t k = 0; k < V0._count; ++k)
+	{
+		const glm::vec3& a = V0._members[0];
+		const glm::vec3& b = V1._members[0];
+		const glm::vec3& c = V2._members[0];
+		glm::vec3& o = Output._members[0];
 
 		o.x = (a.x * w0 + b.x * w1 + c.x * w2) * W;
 		o.y = (a.y * w0 + b.y * w1 + c.y * w2) * W;
 		o.z = (a.z * w0 + b.z * w1 + c.z * w2) * W;
-#endif
 	}
-
-	Output._count = V0._count;
+#endif
 }
 
 static void RasterizeTriangleNormal(const FSR_Context& InContext, const FSRVertexShaderOutput& A, const FSRVertexShaderOutput& B, const FSRVertexShaderOutput& C)
@@ -288,18 +290,23 @@ static void RasterizeTriangleNormal(const FSR_Context& InContext, const FSRVerte
 	const int32_t X1 = static_cast<int32_t>(ceilf(bbox._maxx));
 	const int32_t Y1 = static_cast<int32_t>(ceilf(bbox._maxy));
 
-	glm::vec3 P(0, 0, 0);
+	glm::vec3 P(0);
 	FSRPixelShaderInput PixelInput;
 	FSRPixelShaderOutput PixelOutput;
-	// set output color count only once
+
+	// set count only once
+	PixelInput._attributes._count = VA0._count;
 	PixelOutput._color_cnt = InContext._ps->OutputColorCount();
 
-	for (int32_t cy = Y0; cy < Y1; ++cy)
+	float flt_X0 = X0, flt_Y0 = Y0;
+	float flt_cx, flt_cy;
+	int32_t cx, cy;
+	for (cy = Y0, flt_cy = flt_Y0; cy < Y1; ++cy, flt_cy += 1.f)
 	{
-		for (int32_t cx = X0; cx < X1; ++cx)
+		for (cx = X0, flt_cx = flt_X0; cx < X1; ++cx, flt_cx += 1.f)
 		{
-			P.x = cx + 0.5f;
-			P.y = cy + 0.5f;
+			P.x = flt_cx + 0.5f;
+			P.y = flt_cy + 0.5f;
 
 			float E12 = EdgeFunction(SV1._screen_pos, SV2._screen_pos, P);
 			float E20 = EdgeFunction(SV2._screen_pos, SV0._screen_pos, P);
@@ -453,7 +460,9 @@ static void RasterizeTriangleMSAA4(const FSR_Context& InContext, const FSRVertex
 	glm::vec3 P(0, 0, 0);
 	FSRPixelShaderInput PixelInput;
 	FSRPixelShaderOutput PixelOutput;
-	// set output color count only once
+	
+	// set count only once
+	PixelInput._attributes._count = VA0._count;
 	PixelOutput._color_cnt = InContext._ps->OutputColorCount();
 	
 	for (int32_t cy = Y0; cy < Y1; ++cy)
