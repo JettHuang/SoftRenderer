@@ -85,3 +85,38 @@ project "Viewer"
 		"./Viewer/Source/*.cc"
     }
 
+-- project realtime viewer
+project "RealTimeViewer"
+    language "C++"
+    kind "ConsoleApp"
+
+	dependson { "Renderer" }
+	links { "Renderer" }
+	
+-- third library cflags and libs
+	includedirs { "./ThirdParty/SDL/include" }
+	libdirs { 
+		"./ThirdParty/SDL/lib/%{cfg.architecture:gsub('x86_64', 'x64')}"
+	}
+	links {
+		"SDL2",
+		"SDL2main"
+	}
+	
+	postbuildcommands {
+		-- Copy the SDL2 dll to the Bin folder.
+		'{COPY} "%{path.getabsolute("./ThirdParty/SDL/lib/" .. cfg.architecture:gsub("x86_64", "x64") .. "/SDL2.dll")}" "%{cfg.targetdir}"',
+	}
+	
+    includedirs {
+        "./ThirdParty/glm",
+		"./ThirdParty/stb",
+		"./ThirdParty/tinyobjloader",
+		"./Renderer/Include",
+		"./RealTimeViewer/Include"
+    }
+	
+    files {
+		"./RealTimeViewer/Include/*.h",
+		"./RealTimeViewer/Source/*.cc"
+    }
