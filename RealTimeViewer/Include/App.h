@@ -39,7 +39,7 @@ protected:
 	void OnWndClosed();
 
 	// canvas operations
-	void SwapChain(const std::shared_ptr<FSR_Buffer2D>& InBuffer2D);
+	void SwapChain(const FSR_Buffer2D& InBuffer2D);
 	void Present();
 
 protected:

@@ -149,27 +149,35 @@ void FApp::Present()
 	SDL_RenderPresent(_SDLRenderer);
 }
 
-void FApp::SwapChain(const std::shared_ptr<FSR_Buffer2D>& InBuffer2D)
+void FApp::SwapChain(const FSR_Buffer2D& InBuffer2D)
 {
-	const uint32_t image_width = InBuffer2D->Width();
-	const uint32_t image_height = InBuffer2D->Height();
-	const uint32_t bytes_per_row = InBuffer2D->GetBytesPerRow();
+	const uint32_t image_width = InBuffer2D.Width();
+	const uint32_t image_height = InBuffer2D.Height();
+	const uint32_t bytes_per_row = InBuffer2D.GetBytesPerRow();
 
 	assert(image_width == _Width && image_height == _Height);
-	assert(InBuffer2D->Format() == EPixelFormat::PIXEL_FORMAT_RGBA8888);
+	assert(InBuffer2D.Format() == EPixelFormat::PIXEL_FORMAT_RGBA8888);
 	
 	uint8_t* pBuffer = NULL;
 	int32_t pitch = 0;
 	SDL_LockTexture(_SDLRenderTexture, NULL, (void**)&pBuffer, &pitch);
 	assert(bytes_per_row <= pitch);
 
-	for (int32_t j = image_height - 1; j >= 0; --j, pBuffer+=pitch)
+	if (bytes_per_row == pitch)
 	{
-		const uint8_t* src = InBuffer2D->GetRowData(j);
-		uint8_t* dst = pBuffer;
-		
-		memcpy(dst, src, bytes_per_row);
-	} // end j
+		memcpy(pBuffer, InBuffer2D.Data(), InBuffer2D.Length());
+	}
+	else
+	{
+		for (int32_t j = image_height - 1; j >= 0; --j, pBuffer += pitch)
+		{
+			const uint8_t* src = InBuffer2D.GetRowData(j);
+			uint8_t* dst = pBuffer;
+
+			memcpy(dst, src, bytes_per_row);
+		} // end j
+	}
+
 
 	SDL_UnlockTexture(_SDLRenderTexture);
 }
@@ -224,7 +232,7 @@ void FApp::Tick(float InDeltaSeconds)
 	const std::shared_ptr<FSR_Buffer2D>& Buffer2d = _SR_Ctx.GetColorBuffer(0);
 	assert(Buffer2d);
 
-	SwapChain(Buffer2d);
+	SwapChain(*Buffer2d);
 	Present();
 }
 
