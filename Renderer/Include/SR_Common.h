@@ -68,7 +68,7 @@ struct FSR_Rectangle
 // Attributes
 struct FSRVertexAttributes
 {
-	glm::vec3		_members[MAX_ATTRIBUTES_COUNT];
+	glm::vec4		_members[MAX_ATTRIBUTES_COUNT];
 	uint32_t		_count;
 
 	FSRVertexAttributes() : _count(0) 
@@ -99,7 +99,7 @@ private:
 // VS INPUT
 struct FSRVertexShaderInput
 {
-	glm::vec3			_vertex;
+	glm::vec4			_vertex;
 	FSRVertexAttributes	_attributes;
 };
 

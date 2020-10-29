@@ -191,20 +191,20 @@ void Example_SingleTriangle()
 
 	FSRVertex v0, v1, v2, v3;
 
-	v0._vertex = glm::vec3(-0.5, -0.5, 1.0);
-	v0._attributes._members[0] = glm::vec3(1.0, 0.0, 0.0);
+	v0._vertex = glm::vec4(-0.5, -0.5, 1.0, 1.0);
+	v0._attributes._members[0] = glm::vec4(1.0, 0.0, 0.0, 1.f);
 	v0._attributes._count = 1;
 
-	v1._vertex = glm::vec3(-0.5, 0.5, 1.0);
-	v1._attributes._members[0] = glm::vec3(0.0, 1.0, 0.0);
+	v1._vertex = glm::vec4(-0.5, 0.5, 1.0, 1.0);
+	v1._attributes._members[0] = glm::vec4(0.0, 1.0, 0.0, 1.f);
 	v1._attributes._count = 1;
 
-	v2._vertex = glm::vec3(0.8, 0.5, 1.0);
-	v2._attributes._members[0] = glm::vec3(0.0, 0.0, 1.0);
+	v2._vertex = glm::vec4(0.8, 0.5, 1.0, 1.f);
+	v2._attributes._members[0] = glm::vec4(0.0, 0.0, 1.0, 1.f);
 	v2._attributes._count = 1;
 
-	v3._vertex = glm::vec3(0.5, -0.5, 1.0);
-	v3._attributes._members[0] = glm::vec3(0.0, 1.0, 0.0);
+	v3._vertex = glm::vec4(0.5, -0.5, 1.0, 1.f);
+	v3._attributes._members[0] = glm::vec4(0.0, 1.0, 0.0, 1.f);
 	v3._attributes._count = 1;
 
 	//FSR_Renderer::DrawTriangle(ctx, v0, v1, v2);
@@ -274,26 +274,26 @@ void Example_Multi_Cubes()
 	ctx.SetProjectionMatrix(proj);
 
 	// objects
-	glm::vec3 vertices[] =
+	glm::vec4 vertices[] =
 	{
-		{ 1.0f, -1.0f, -1.0f },
-		{ 1.0f, -1.0f, 1.0f },
-		{ -1.0f, -1.0f, 1.0f },
-		{ -1.0f, -1.0f, -1.0f },
-		{ 1.0f, 1.0f, -1.0f },
-		{  1.0f, 1.0f, 1.0f },
-		{ -1.0f, 1.0f, 1.0f },
-		{ -1.0f, 1.0f, -1.0f },
+		{ 1.0f, -1.0f, -1.0f, 1.f },
+		{ 1.0f, -1.0f, 1.0f, 1.f },
+		{ -1.0f, -1.0f, 1.0f, 1.f },
+		{ -1.0f, -1.0f, -1.0f, 1.f },
+		{ 1.0f, 1.0f, -1.0f, 1.f },
+		{  1.0f, 1.0f, 1.0f, 1.f },
+		{ -1.0f, 1.0f, 1.0f, 1.f },
+		{ -1.0f, 1.0f, -1.0f, 1.f },
 	};
 	// Use per-face colors
-	glm::vec3 colors[] =
+	glm::vec4 colors[] =
 	{
-		glm::vec3(0, 0, 1),
-		glm::vec3(0, 1, 0),
-		glm::vec3(0, 1, 1),
-		glm::vec3(1, 1, 1),
-		glm::vec3(1, 0, 1),
-		glm::vec3(1, 1, 0)
+		glm::vec4(0, 0, 1, 1),
+		glm::vec4(0, 1, 0, 1),
+		glm::vec4(0, 1, 1, 1),
+		glm::vec4(1, 1, 1, 1),
+		glm::vec4(1, 0, 1, 1),
+		glm::vec4(1, 1, 0, 1)
 	};
 	uint32_t indices[] =
 	{
@@ -336,7 +336,7 @@ void Example_Multi_Cubes()
 		// Loop over triangles in a given object and rasterize them one by one
 		for (uint32_t idx = 0; idx < ARR_SIZE(indices) / 3; idx++)
 		{
-			const glm::vec3& color = colors[indices[idx * 3] % 6];
+			const glm::vec4& color = colors[indices[idx * 3] % 6];
 
 			v0._vertex = vertices[indices[idx * 3]];
 			v0._attributes._members[0] = color;
@@ -433,7 +433,7 @@ class FTeapot_VertexShader : public FSR_VertexShader
 public:
 	virtual void Process(const FSR_Context& InContext, const FSRVertexShaderInput& Input, FSRVertexShaderOutput& Output) override
 	{
-		Output._vertex = InContext._mvp * glm::vec4(Input._vertex, 1.f);
+		Output._vertex = InContext._mvp * Input._vertex;
 		Output._attributes = Input._attributes;
 	}
 };

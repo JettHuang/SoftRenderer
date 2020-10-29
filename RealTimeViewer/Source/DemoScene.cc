@@ -20,26 +20,26 @@ void FDemoScene_Cubes::DrawScene(FSR_Context& ctx, const glm::mat4x4& InViewMat,
 	ctx.SetShader(_vs, _ps);
 
 	// objects
-	static const glm::vec3 vertices[] =
+	static const glm::vec4 vertices[] =
 	{
-		{ 1.0f, -1.0f, -1.0f },
-		{ 1.0f, -1.0f, 1.0f },
-		{ -1.0f, -1.0f, 1.0f },
-		{ -1.0f, -1.0f, -1.0f },
-		{ 1.0f, 1.0f, -1.0f },
-		{  1.0f, 1.0f, 1.0f },
-		{ -1.0f, 1.0f, 1.0f },
-		{ -1.0f, 1.0f, -1.0f },
+		{ 1.0f, -1.0f, -1.0f, 1.f },
+		{ 1.0f, -1.0f, 1.0f, 1.f },
+		{ -1.0f, -1.0f, 1.0f, 1.f },
+		{ -1.0f, -1.0f, -1.0f, 1.f },
+		{ 1.0f, 1.0f, -1.0f, 1.f },
+		{  1.0f, 1.0f, 1.0f, 1.f },
+		{ -1.0f, 1.0f, 1.0f, 1.f },
+		{ -1.0f, 1.0f, -1.0f, 1.f },
 	};
 	// Use per-face colors
-	static const glm::vec3 colors[] =
+	static const glm::vec4 colors[] =
 	{
-		glm::vec3(0, 0, 1),
-		glm::vec3(0, 1, 0),
-		glm::vec3(0, 1, 1),
-		glm::vec3(1, 1, 1),
-		glm::vec3(1, 0, 1),
-		glm::vec3(1, 1, 0)
+		glm::vec4(0, 0, 1, 1),
+		glm::vec4(0, 1, 0, 1),
+		glm::vec4(0, 1, 1, 1),
+		glm::vec4(1, 1, 1, 1),
+		glm::vec4(1, 0, 1, 1),
+		glm::vec4(1, 1, 0, 1)
 	};
 	static const uint32_t indices[] =
 	{
@@ -84,7 +84,7 @@ void FDemoScene_Cubes::DrawScene(FSR_Context& ctx, const glm::mat4x4& InViewMat,
 		// Loop over triangles in a given object and rasterize them one by one
 		for (uint32_t idx = 0; idx < ARR_SIZE(indices) / 3; idx++)
 		{
-			const glm::vec3& color = colors[indices[idx * 3] % 6];
+			const glm::vec4& color = colors[indices[idx * 3] % 6];
 
 			v0._vertex = vertices[indices[idx * 3]];
 			v0._attributes._members[0] = color;

@@ -138,9 +138,9 @@ bool FSR_Mesh::LoadFromObjFile(const char* fileName, const char* mtlBaseDir)
 						}
 
 						FSRVertex uniqueVertex;
-						uniqueVertex._vertex = pos;
-						uniqueVertex._attributes._members[SRMESH_NORMAL_ATTRIB] = normal;
-						uniqueVertex._attributes._members[SRMESH_UV_ATTRIB] = uv;
+						uniqueVertex._vertex = glm::vec4(pos.x, pos.y, pos.z, 1.f);
+						uniqueVertex._attributes._members[SRMESH_NORMAL_ATTRIB] = glm::vec4(normal.x, normal.y, normal.z, 0.f);
+						uniqueVertex._attributes._members[SRMESH_UV_ATTRIB] = glm::vec4(uv.x, uv.y, 0.f, 1.f);
 						uniqueVertex._attributes._count = 2;
 
 						_VertexBuffer.push_back(uniqueVertex);

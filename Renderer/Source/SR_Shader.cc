@@ -9,7 +9,7 @@
 // simple vs & ps with color
 void FSR_SimpleVertexShader::Process(const FSR_Context& InContext, const FSRVertexShaderInput& Input, FSRVertexShaderOutput& Output)
 {
-	Output._vertex = InContext._mvp * glm::vec4(Input._vertex, 1.f);
+	Output._vertex = InContext._mvp * Input._vertex;
 	Output._attributes = Input._attributes;
 }
 
@@ -26,7 +26,7 @@ void FSR_SimplePixelShader::Process(const FSR_Context& InContext, const FSRPixel
 // mesh vs & ps with diffuse texture
 void FSR_SimpleMeshVertexShader::Process(const FSR_Context& InContext, const FSRVertexShaderInput& Input, FSRVertexShaderOutput& Output)
 {
-	Output._vertex = InContext._mvp * glm::vec4(Input._vertex, 1.f);
+	Output._vertex = InContext._mvp * Input._vertex;
 	Output._attributes = Input._attributes;
 }
 
