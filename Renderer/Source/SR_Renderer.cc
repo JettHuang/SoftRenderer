@@ -64,6 +64,7 @@
 
 #include <algorithm>
 #include "SR_Renderer.h"
+#include "SR_SSE.h"
 
 
 inline void InterpolateVertex_Linear(const FSRVertexShaderOutput& P1, const FSRVertexShaderOutput& P2, float t, FSRVertexShaderOutput& OutVert)
