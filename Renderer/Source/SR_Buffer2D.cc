@@ -5,6 +5,7 @@
 #include "stb_image.h"
 #include "stb_image_write.h"
 #include "SR_Buffer2D.h"
+#include "SR_SSE.h"
 
 
 const float FSR_Buffer2D::ONE_OVER_255 = (1.f / 255.f);
@@ -471,10 +472,13 @@ bool FSR_Buffer2D_RGBA8888::Read(uint32_t cx, uint32_t cy, float& R, float& G, f
 	assert(offset != SR_INVALID_INDEX);
 
 	const uint8_t* pData = _buffer.data() + offset;
-	R = *pData * ONE_OVER_255;  
-	G = *(pData + 1) * ONE_OVER_255; 
-	B = *(pData + 2) * ONE_OVER_255; 
-	A = *(pData + 3) * ONE_OVER_255;
+	
+	VectorRegister clr0 = VectorLoadByte4(pData);
+	VectorRegister clr1 = VectorMultiply(clr0, VectorRegsiterConstants::FloatOneOver255);
+	R = VectorGetComponent(clr1, 0);
+	G = VectorGetComponent(clr1, 1);
+	B = VectorGetComponent(clr1, 2);
+	A = VectorGetComponent(clr1, 3);
 
 	return true;
 }
@@ -517,10 +521,10 @@ bool FSR_Buffer2D_RGBA8888::Write(uint32_t cx, uint32_t cy, float R, float G, fl
 	assert(offset != SR_INVALID_INDEX);
 
 	uint8_t* pData = _buffer.data() + offset;
-	*pData = glm::clamp<uint8_t>(uint8_t(R * 255), 0, 255);
-	*(pData + 1) = glm::clamp<uint8_t>(uint8_t(G * 255), 0, 255);
-	*(pData + 2) = glm::clamp<uint8_t>(uint8_t(B * 255), 0, 255);
-	*(pData + 3) = glm::clamp<uint8_t>(uint8_t(A * 255), 0, 255);
+
+	VectorRegister clr0 = MakeVectorRegister(R, G, B, A);
+	VectorRegister clr1 = VectorMultiply(clr0, VectorRegsiterConstants::Float255);
+	VectorStoreByte4(clr1, pData);
 
 	return true;
 }

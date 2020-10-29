@@ -36,6 +36,8 @@ public:
 	static const VectorRegister FloatNonFractional;
 	static const VectorRegister SignMask;
 	static const VectorRegister FloatMinusOne;
+	static const VectorRegister FloatOneOver255;
+	static const VectorRegister Float255;
 
 	static const VectorRegisterInt IntAllMask;
 	static const VectorRegisterInt IntOne;
