@@ -52,6 +52,8 @@ public:
 	// utilities for raster
 	glm::vec3 NDCToScreenPostion(const glm::vec3& ndc) const;
 	const FSR_Rectangle& ViewportRectangle() const { return _viewport_rect; }
+	
+	// depth & color
 	bool DepthTestAndOverride(uint32_t cx, uint32_t cy, float InDepth) const;
 	bool DepthTestAndOverrideMSAA(uint32_t cx, uint32_t cy, float InDepth, int32_t InSampleIndex) const;
 	void OutputAndMergeColor(int32_t cx, int32_t cy, FSRPixelShaderOutput& InPixelOutput) const;

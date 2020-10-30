@@ -79,28 +79,29 @@ void FSR_Context::SetRenderTarget(uint32_t w, uint32_t h, uint32_t nCount, bool 
 }
 
 // clear render target
+static const float kFloat4One[4] = { 1.f, 1.f, 1.f, 1.f };
 void FSR_Context::ClearRenderTarget(const glm::vec4& InColor)
 {
 	if (_pointers_shadow._rt_depth)
 	{
-		_pointers_shadow._rt_depth->Clear(1.f, 1.f, 1.f, 1.f);
+		_pointers_shadow._rt_depth->Clear(kFloat4One);
 	}
 	for (uint32_t i = 0; i < MAX_MRT_COUNT; ++i)
 	{
 		if (_pointers_shadow._rt_colors[i])
 		{
-			_pointers_shadow._rt_colors[i]->Clear(InColor.r, InColor.g, InColor.b, InColor.a);
+			_pointers_shadow._rt_colors[i]->Clear(&InColor.r);
 		}
 	} // end for i
 
 	if (_bEnableMSAA)
 	{
-		_pointers_shadow._rt_depth_msaa->Clear(1.f, 1.f, 1.f, 1.f);
+		_pointers_shadow._rt_depth_msaa->Clear(kFloat4One);
 		for (uint32_t i = 0; i < MAX_MRT_COUNT; ++i)
 		{
 			if (_pointers_shadow._rt_colors_msaa[i])
 			{
-				_pointers_shadow._rt_colors_msaa[i]->Clear(InColor.r, InColor.g, InColor.b, InColor.a);
+				_pointers_shadow._rt_colors_msaa[i]->Clear(&InColor.r);
 			}
 		} // end for i
 	}
@@ -238,19 +239,22 @@ void FSR_Context::ResolveMSAABuffer()
 			{
 				for (uint32_t cx = 0, msaa_cx = 0; cx < w; ++cx, msaa_cx += _MSAASamplesNum)
 				{
-					float R = 0.f, G = 0.f, B = 0.f, A = 0.f;
-					float r, g, b, a;
+					float RGBA[4];
+					float rgba[4];
 					for (int32_t i = 0; i < _MSAASamplesNum; ++i)
 					{
-						rt_color_msaa->Read(msaa_cx + i, cy, r, g, b, a);
-						R += r;
-						G += g;
-						B += b;
-						A += a;
+						rt_color_msaa->Read(msaa_cx + i, cy, rgba);
+						RGBA[0] += rgba[0];
+						RGBA[1] += rgba[1];
+						RGBA[2] += rgba[2];
+						RGBA[3] += rgba[3];
 					} // end for i
 
-					R *= factor; G *= factor; B *= factor; A *= factor;
-					rt_color->Write(cx, cy, R, G, B, A);
+					RGBA[0] *= factor;
+					RGBA[1] *= factor;
+					RGBA[2] *= factor;
+					RGBA[3] *= factor;
+					rt_color->Write(cx, cy, RGBA);
 				} // end for cx
 			} // end for cy
 		}
@@ -295,10 +299,10 @@ bool FSR_Context::DepthTestAndOverrideMSAA(uint32_t cx, uint32_t cy, float InDep
 	{
 		float PrevDepth = 0.f;
 		uint32_t cx_msaa = cx * _MSAASamplesNum + InSampleIndex;
-		_rt_depth_msaa->Read(cx_msaa, cy, PrevDepth);
+		_pointers_shadow._rt_depth_msaa->Read(cx_msaa, cy, PrevDepth);
 		if (InDepth <= PrevDepth)
 		{
-			_rt_depth_msaa->Write(cx_msaa, cy, InDepth);
+			_pointers_shadow._rt_depth_msaa->Write(cx_msaa, cy, InDepth);
 			return true;
 		}
 		else
@@ -318,7 +322,7 @@ void FSR_Context::OutputAndMergeColor(int32_t cx, int32_t cy, FSRPixelShaderOutp
 		if (rt)
 		{
 			const glm::vec4& color = InPixelOutput._colors[k];
-			rt->Write(cx, cy, color.r, color.g, color.b, color.a);
+			rt->Write(cx, cy, &color.r);
 		}
 	} // end for k
 }
@@ -337,7 +341,7 @@ void FSR_Context::OutputAndMergeColorMSAA(int32_t cx, int32_t cy, FSRPixelShader
 			{
 				if (InBitMask & (0x01 << index))
 				{
-					rt->Write(cx_msaa + index, cy, color.r, color.g, color.b, color.a);
+					rt->Write(cx_msaa + index, cy, &color.r);
 				}
 			} // end for index
 		}

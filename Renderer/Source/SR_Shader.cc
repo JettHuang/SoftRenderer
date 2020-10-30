@@ -38,14 +38,11 @@ void FSR_SimpleMeshPixelShader::Process(const FSR_Context& InContext, const FSRP
 	Output._color_cnt = 1;
 #else
 	const glm::vec3 &uv = Input._attributes._members[1];
-	float R = 0.f, G = 0.f, B = 0.f, A = 0.f;
+	float RGBA[4];
 	if (InContext._material && InContext._material->_diffuse_tex)
 	{
-		InContext._material->_diffuse_tex->Sample2DNearest(uv.x, uv.y, R, G, B, A);
+		InContext._material->_diffuse_tex->Sample2DNearest(uv.x, uv.y, RGBA);
 	}
-	Output._colors[0].r = R;
-	Output._colors[0].g = G;
-	Output._colors[0].b = B;
-	Output._colors[0].a = A;
+	memcpy(&Output._colors[0].r, RGBA, sizeof(RGBA));
 #endif
 }

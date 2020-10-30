@@ -31,18 +31,13 @@ void OutputPPM(const std::shared_ptr<FSR_Buffer2D>& InBuffer2D)
 	{
 		for (int32_t i = 0; i < image_width; ++i)
 		{
-			float R, G, B, A;
-			InBuffer2D->Read(i, j, R, G, B, A);
+			float RGBA[4];
+			InBuffer2D->Read(i, j, RGBA);
 			
-			// Replace NaN components with zero. See explanation in Ray Tracing: The Rest of Your Life.
-			if (R != R) R = 0.0f;
-			if (G != G) G = 0.0f;
-			if (B != B) B = 0.0f;
-
 			// Write the translated [0,255] value of each color component.
-			std::cout << static_cast<int>(256 * glm::clamp(R, 0.0f, 0.999f)) << ' '
-					  << static_cast<int>(256 * glm::clamp(G, 0.0f, 0.999f)) << ' '
-					  << static_cast<int>(256 * glm::clamp(B, 0.0f, 0.999f)) << '\n';
+			std::cout << static_cast<int>(256 * glm::clamp(RGBA[0], 0.0f, 0.999f)) << ' '
+					  << static_cast<int>(256 * glm::clamp(RGBA[1], 0.0f, 0.999f)) << ' '
+					  << static_cast<int>(256 * glm::clamp(RGBA[2], 0.0f, 0.999f)) << '\n';
 		}
 	} // end j
 }
@@ -75,13 +70,13 @@ void OutputPNG(const std::shared_ptr<FSR_Buffer2D>& InBuffer2D)
 	{
 		for (int32_t i = 0; i < image_width; ++i)
 		{
-			float R, G, B, A;
-			InBuffer2D->Read(i, j, R, G, B, A);
+			float RGBA[4];
+			InBuffer2D->Read(i, j, RGBA);
 
 			// Write the translated [0,255] value of each color component.
-			*ptr++ = static_cast<int>(255 * R);
-			*ptr++ = static_cast<int>(255 * G);
-			*ptr++ = static_cast<int>(255 * B);
+			*ptr++ = static_cast<int>(255 * RGBA[0]);
+			*ptr++ = static_cast<int>(255 * RGBA[1]);
+			*ptr++ = static_cast<int>(255 * RGBA[2]);
 		}
 	} // end j
 
@@ -123,35 +118,35 @@ void OutputMSAA4PNG(const std::shared_ptr<FSR_Buffer2D>& InBuffer2D)
 	{
 		for (int32_t i = 0; i < image_width; ++i)
 		{
-			float R, G, B, A;
+			float RGBA[4];
 
-			InBuffer2D->Read(i*4+3, j, R, G, B, A);
+			InBuffer2D->Read(i*4+3, j, RGBA);
 			// Write the translated [0,255] value of each color component.
-			*ptr++ = static_cast<int>(255 * R);
-			*ptr++ = static_cast<int>(255 * G);
-			*ptr++ = static_cast<int>(255 * B);
+			*ptr++ = static_cast<int>(255 * RGBA[0]);
+			*ptr++ = static_cast<int>(255 * RGBA[1]);
+			*ptr++ = static_cast<int>(255 * RGBA[2]);
 
-			InBuffer2D->Read(i*4+2, j, R, G, B, A);
+			InBuffer2D->Read(i*4+2, j, RGBA);
 			// Write the translated [0,255] value of each color component.
-			*ptr++ = static_cast<int>(255 * R);
-			*ptr++ = static_cast<int>(255 * G);
-			*ptr++ = static_cast<int>(255 * B);
+			*ptr++ = static_cast<int>(255 * RGBA[0]);
+			*ptr++ = static_cast<int>(255 * RGBA[1]);
+			*ptr++ = static_cast<int>(255 * RGBA[2]);
 		}
 		for (int32_t i = 0; i < image_width; ++i)
 		{
-			float R, G, B, A;
+			float RGBA[4];
 
-			InBuffer2D->Read(i*4, j, R, G, B, A);
+			InBuffer2D->Read(i*4, j, RGBA);
 			// Write the translated [0,255] value of each color component.
-			*ptr++ = static_cast<int>(255 * R);
-			*ptr++ = static_cast<int>(255 * G);
-			*ptr++ = static_cast<int>(255 * B);
+			*ptr++ = static_cast<int>(255 * RGBA[0]);
+			*ptr++ = static_cast<int>(255 * RGBA[1]);
+			*ptr++ = static_cast<int>(255 * RGBA[2]);
 
-			InBuffer2D->Read(i*4+1, j, R, G, B, A);
+			InBuffer2D->Read(i*4+1, j, RGBA);
 			// Write the translated [0,255] value of each color component.
-			*ptr++ = static_cast<int>(255 * R);
-			*ptr++ = static_cast<int>(255 * G);
-			*ptr++ = static_cast<int>(255 * B);
+			*ptr++ = static_cast<int>(255 * RGBA[0]);
+			*ptr++ = static_cast<int>(255 * RGBA[1]);
+			*ptr++ = static_cast<int>(255 * RGBA[2]);
 		}
 	} // end j
 

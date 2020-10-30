@@ -302,12 +302,26 @@ static void RasterizeTriangleNormal(const FSR_Context& InContext, const FSRVerte
 	// set count only once
 	PixelInput._attributes._count = VA0._count;
 	PixelOutput._color_cnt = InContext._ps->OutputColorCount();
+	assert(PixelOutput._color_cnt <= MAX_MRT_COUNT);
+
+	// depth buffer & color buffer
+	uint8_t* pDepthBufferRow;
+	uint8_t* pColorBufferRows[MAX_MRT_COUNT];
+
+	assert(InContext._pointers_shadow._rt_depth);
 
 	float flt_X0 = X0, flt_Y0 = Y0;
 	float flt_cx, flt_cy;
 	int32_t cx, cy;
 	for (cy = Y0, flt_cy = flt_Y0; cy < Y1; ++cy, flt_cy += 1.f)
 	{
+		pDepthBufferRow = InContext._pointers_shadow._rt_depth->GetRowData(cy);
+		for (uint32_t k=0; k < PixelOutput._color_cnt; ++k)
+		{
+			assert(InContext._pointers_shadow._rt_colors[k]);
+			pColorBufferRows[k] = InContext._pointers_shadow._rt_colors[k]->GetRowData(cy);;
+		}
+
 		for (cx = X0, flt_cx = flt_X0; cx < X1; ++cx, flt_cx += 1.f)
 		{
 			P.x = flt_cx + 0.5f;
@@ -356,7 +370,17 @@ static void RasterizeTriangleNormal(const FSR_Context& InContext, const FSRVerte
 #if SR_ENABLE_PERFORMACE_STAT
 			PerfCounter.StartPerf();
 #endif
-			bool bPassDepth = InContext.DepthTestAndOverride(cx, cy, depth);
+			bool bPassDepth = false;
+			{
+				float PrevDepth;
+				InContext._pointers_shadow._rt_depth->Read(pDepthBufferRow, cx, PrevDepth);
+				if (depth <= PrevDepth)
+				{
+					InContext._pointers_shadow._rt_depth->Write(pDepthBufferRow, cx, depth);
+					bPassDepth = true;
+				}
+			}
+
 #if SR_ENABLE_PERFORMACE_STAT
 			elapse_microseconds = PerfCounter.EndPerf();
 			Stats->_depth_tw_count++;
@@ -384,8 +408,13 @@ static void RasterizeTriangleNormal(const FSR_Context& InContext, const FSRVerte
 #if SR_ENABLE_PERFORMACE_STAT
 			PerfCounter.StartPerf();
 #endif
-			InContext.OutputAndMergeColor(cx, cy, PixelOutput);
-
+			// output and merge color
+			for (uint32_t k = 0; k < PixelOutput._color_cnt; ++k)
+			{
+				const glm::vec4& color = PixelOutput._colors[k];
+				FSR_Texture2D* rt = InContext._pointers_shadow._rt_colors[k];
+				rt->Write(pColorBufferRows[k], cx, &color.r);
+			} // end for k
 #if SR_ENABLE_PERFORMACE_STAT
 			elapse_microseconds = PerfCounter.EndPerf();
 			Stats->_color_write_count += PixelOutput._color_cnt;

@@ -24,7 +24,7 @@ FSR_Buffer2D::FSR_Buffer2D(uint32_t width, uint32_t height, EPixelFormat pixelfo
 }
 
 // sample element
-bool FSR_Buffer2D::Sample2DNearest(float u, float v, float& R, float& G, float& B, float& A) const
+bool FSR_Buffer2D::Sample2DNearest(float u, float v, float RGBA[]) const
 {
 	u = u - floor(u);
 	v = v - floor(v);
@@ -32,10 +32,10 @@ bool FSR_Buffer2D::Sample2DNearest(float u, float v, float& R, float& G, float& 
 	uint32_t cx = glm::clamp<int32_t>(int32_t(_w * u), 0, _w - 1);
 	uint32_t cy = glm::clamp<int32_t>(int32_t(_h * v), 0, _h - 1);
 
-	return Read(cx, cy, R, G, B, A);
+	return Read(cx, cy, RGBA);
 }
 
-bool FSR_Buffer2D::Sample2DLinear(float u, float v, float& R, float& G, float& B, float& A) const
+bool FSR_Buffer2D::Sample2DLinear(float u, float v, float RGBA[]) const
 {
 	u = u - floor(u);
 	v = v - floor(v);
@@ -66,19 +66,16 @@ bool FSR_Buffer2D::Sample2DLinear(float u, float v, float& R, float& G, float& B
 	uint32_t icy1 = static_cast<uint32_t>(cy1);
 
 	glm::vec4 c0, c1, c2, c3;
-	Read(icx0, icy0, c0.r, c0.g, c0.b, c0.a);
-	Read(icx1, icy0, c1.r, c1.g, c1.b, c1.a);
-	Read(icx0, icy1, c2.r, c2.g, c2.b, c2.a);
-	Read(icx1, icy1, c3.r, c3.g, c3.b, c3.a);
+	Read(icx0, icy0, &c0.r);
+	Read(icx1, icy0, &c1.r);
+	Read(icx0, icy1, &c2.r);
+	Read(icx1, icy1, &c3.r);
 
 	glm::vec4 color0 = glm::mix(c0, c1, tu);
 	glm::vec4 color1 = glm::mix(c2, c3, tu);
 	glm::vec4 result = glm::mix(color0, color1, tv);
 
-	R = result.r;
-	G = result.g;
-	B = result.b;
-	A = result.a;
+	memcpy(RGBA, &result.r, sizeof(float)*4);
 
 	return true;
 }
@@ -86,21 +83,21 @@ bool FSR_Buffer2D::Sample2DLinear(float u, float v, float& R, float& G, float& B
 //////////////////////////////////////////////////////////////////////////
 // PIXEL_FORMAT_U16
 
-bool FSR_Buffer2D_U16::Read(const uint8_t *pRow, uint32_t cx, uint8_t& R, uint8_t& G, uint8_t& B, uint8_t& A) const
+bool FSR_Buffer2D_U16::Read(const uint8_t *pRow, uint32_t cx, uint8_t RGBA[]) const
 {
-	assert(cx < _w && cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 2);
 
 	const uint8_t* pData = pRow + (cx << 1);
-	R = (uint8_t)(*(reinterpret_cast<const uint16_t*>(pData)));
-	G = B = 0;
-	A = 255;
+	RGBA[0] = (uint8_t)(*(reinterpret_cast<const uint16_t*>(pData)));
+	RGBA[1] = RGBA[2] = 0;
+	RGBA[3] = 255;
 	return true;
 }
 
 bool FSR_Buffer2D_U16::Read(const uint8_t *pRow, uint32_t cx, uint16_t& Value) const
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 2);
 
 	const uint8_t* pData = pRow + (cx << 1);
@@ -110,22 +107,22 @@ bool FSR_Buffer2D_U16::Read(const uint8_t *pRow, uint32_t cx, uint16_t& Value) c
 }
 
 // maybe normalized [0, 1] before return.
-bool FSR_Buffer2D_U16::Read(const uint8_t *pRow, uint32_t cx, float& R, float& G, float& B, float& A) const
+bool FSR_Buffer2D_U16::Read(const uint8_t *pRow, uint32_t cx, float RGBA[]) const
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 2);
 
 	const uint8_t* pData = pRow + (cx << 1);
-	R = *(reinterpret_cast<const uint16_t*>(pData)) * ONE_OVER_65535;
-	G = B = 0.f;
-	A = 1.f;
+	RGBA[0] = *(reinterpret_cast<const uint16_t*>(pData)) * ONE_OVER_65535;
+	RGBA[1] = RGBA[2] = 0.f;
+	RGBA[3] = 1.f;
 
 	return true;
 }
 
 bool FSR_Buffer2D_U16::Read(const uint8_t *pRow, uint32_t cx, float& Value) const
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 2);
 
 	const uint8_t* pData = pRow + (cx << 1);
@@ -133,19 +130,19 @@ bool FSR_Buffer2D_U16::Read(const uint8_t *pRow, uint32_t cx, float& Value) cons
 	return true;
 }
 
-bool FSR_Buffer2D_U16::Write(uint8_t *pRow, uint32_t cx, uint8_t R, uint8_t G, uint8_t B, uint8_t A)
+bool FSR_Buffer2D_U16::Write(uint8_t *pRow, uint32_t cx, const uint8_t RGBA[])
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 2);
 
 	uint8_t* pData = pRow + (cx << 1);
-	*(reinterpret_cast<uint16_t*>(pData)) = R;
+	*(reinterpret_cast<uint16_t*>(pData)) = RGBA[0];
 	return true;
 }
 
 bool FSR_Buffer2D_U16::Write(uint8_t *pRow, uint32_t cx, uint16_t& Value)
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 2);
 
 	uint8_t* pData = pRow + (cx << 1);
@@ -153,19 +150,19 @@ bool FSR_Buffer2D_U16::Write(uint8_t *pRow, uint32_t cx, uint16_t& Value)
 	return true;
 }
 
-bool FSR_Buffer2D_U16::Write(uint8_t *pRow, uint32_t cx, float R, float G, float B, float A)
+bool FSR_Buffer2D_U16::Write(uint8_t *pRow, uint32_t cx, const float RGBA[])
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 2);
 
 	uint8_t* pData = pRow + (cx << 1);
-	*(reinterpret_cast<uint16_t*>(pData)) = glm::clamp<uint16_t>(uint16_t(R * 65535.f), 0, 65535);
+	*(reinterpret_cast<uint16_t*>(pData)) = glm::clamp<uint16_t>(uint16_t(RGBA[0] * 65535.f), 0, 65535);
 	return true;
 }
 
 bool FSR_Buffer2D_U16::Write(uint8_t *pRow, uint32_t cx, float R)
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 2);
 
 	uint8_t* pData = pRow + (cx << 1);
@@ -173,9 +170,9 @@ bool FSR_Buffer2D_U16::Write(uint8_t *pRow, uint32_t cx, float R)
 	return true;
 }
 
-void FSR_Buffer2D_U16::Clear(float R, float G, float B, float A)
+void FSR_Buffer2D_U16::Clear(const float RGBA[])
 {
-	uint16_t R16 = glm::clamp<uint16_t>(uint16_t(R * 65535.f), 0, 65535);
+	uint16_t R16 = glm::clamp<uint16_t>(uint16_t(RGBA[0] * 65535.f), 0, 65535);
 	uint16_t* pData = reinterpret_cast<uint16_t*>(_buffer.data());
 	
 	// fill first line
@@ -198,22 +195,22 @@ void FSR_Buffer2D_U16::Clear(float R, float G, float B, float A)
 //////////////////////////////////////////////////////////////////////////
 // PIXEL_FORMAT_F32
 
-bool FSR_Buffer2D_F32::Read(const uint8_t *pRow, uint32_t cx, uint8_t& R, uint8_t& G, uint8_t& B, uint8_t& A) const
+bool FSR_Buffer2D_F32::Read(const uint8_t *pRow, uint32_t cx, uint8_t RGBA[]) const
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 4);
 
 	const uint8_t* pData = pRow + (cx << 2);
 	float Val = *(reinterpret_cast<const float*>(pData));
-	R = glm::clamp<uint8_t>(uint8_t(Val * 255), 0, 255);
-	G = B = 0;
-	A = 255;
+	RGBA[0] = glm::clamp<uint8_t>(uint8_t(Val * 255), 0, 255);
+	RGBA[1] = RGBA[2] = 0;
+	RGBA[3] = 255;
 	return true;
 }
 
 bool FSR_Buffer2D_F32::Read(const uint8_t *pRow, uint32_t cx, uint16_t& Value) const
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 4);
 	const uint8_t* pData = pRow + (cx << 2);
 
@@ -221,21 +218,21 @@ bool FSR_Buffer2D_F32::Read(const uint8_t *pRow, uint32_t cx, uint16_t& Value) c
 }
 
 // maybe normalized [0, 1] before return.
-bool FSR_Buffer2D_F32::Read(const uint8_t *pRow, uint32_t cx, float& R, float& G, float& B, float& A) const
+bool FSR_Buffer2D_F32::Read(const uint8_t *pRow, uint32_t cx, float RGBA[]) const
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 4);
 
 	const uint8_t* pData = pRow + (cx << 2);
-	R = *(reinterpret_cast<const float*>(pData));
-	G = B = 0.f;
-	A = 1.f;
+	RGBA[0] = *(reinterpret_cast<const float*>(pData));
+	RGBA[1] = RGBA[2] = 0.f;
+	RGBA[3] = 1.f;
 	return true;
 }
 
 bool FSR_Buffer2D_F32::Read(const uint8_t *pRow, uint32_t cx, float& Value) const
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 4);
 
 	const uint8_t* pData = pRow + (cx << 2);
@@ -243,19 +240,19 @@ bool FSR_Buffer2D_F32::Read(const uint8_t *pRow, uint32_t cx, float& Value) cons
 	return true;
 }
 
-bool FSR_Buffer2D_F32::Write(uint8_t *pRow, uint32_t cx, uint8_t R, uint8_t G, uint8_t B, uint8_t A)
+bool FSR_Buffer2D_F32::Write(uint8_t *pRow, uint32_t cx, const uint8_t RGBA[])
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 4);
 
 	uint8_t* pData = pRow + (cx << 2);
-	*(reinterpret_cast<float*>(pData)) = R * ONE_OVER_255;
+	*(reinterpret_cast<float*>(pData)) = RGBA[0] * ONE_OVER_255;
 	return true;
 }
 
 bool FSR_Buffer2D_F32::Write(uint8_t *pRow, uint32_t cx, uint16_t& Value)
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 4);
 
 	uint8_t* pData = pRow + (cx << 2);
@@ -263,20 +260,20 @@ bool FSR_Buffer2D_F32::Write(uint8_t *pRow, uint32_t cx, uint16_t& Value)
 	return true;
 }
 
-bool FSR_Buffer2D_F32::Write(uint8_t *pRow, uint32_t cx, float R, float G, float B, float A)
+bool FSR_Buffer2D_F32::Write(uint8_t *pRow, uint32_t cx, const float RGBA[])
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 4);
 
 	uint8_t* pData = pRow + (cx << 2);
-	*(reinterpret_cast<float*>(pData)) = R;
+	*(reinterpret_cast<float*>(pData)) = RGBA[0];
 
 	return true;
 }
 
 bool FSR_Buffer2D_F32::Write(uint8_t *pRow, uint32_t cx, float R)
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 4);
 
 	uint8_t* pData = pRow + (cx << 2);
@@ -285,14 +282,14 @@ bool FSR_Buffer2D_F32::Write(uint8_t *pRow, uint32_t cx, float R)
 	return true;
 }
 
-void FSR_Buffer2D_F32::Clear(float R, float G, float B, float A)
+void FSR_Buffer2D_F32::Clear(const float RGBA[])
 {
 	float* pData = reinterpret_cast<float*>(_buffer.data());
 
 	// fill first line
 	for (uint32_t k = 0; k < _w; ++k)
 	{
-		*pData++ = R;
+		*pData++ = RGBA[0];
 	}
 	// copy per line
 	uint32_t bytes_per_line = BytesPerLine();
@@ -309,13 +306,16 @@ void FSR_Buffer2D_F32::Clear(float R, float G, float B, float A)
 //////////////////////////////////////////////////////////////////////////
 // FSR_Buffer2D_RGB888
 
-bool FSR_Buffer2D_RGB888::Read(const uint8_t *pRow, uint32_t cx, uint8_t& R, uint8_t& G, uint8_t& B, uint8_t& A) const
+bool FSR_Buffer2D_RGB888::Read(const uint8_t *pRow, uint32_t cx, uint8_t RGBA[]) const
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 3);
 
 	const uint8_t* pData = pRow + ((cx << 1) + cx);
-	R = *pData;  G = *(pData + 1); B = *(pData + 2); A = 255;
+	RGBA[0] = pData[0];  
+	RGBA[1] = pData[1]; 
+	RGBA[2] = pData[2]; 
+	RGBA[3] = 255;
 
 	return true;
 }
@@ -323,7 +323,7 @@ bool FSR_Buffer2D_RGB888::Read(const uint8_t *pRow, uint32_t cx, uint8_t& R, uin
 bool FSR_Buffer2D_RGB888::Read(const uint8_t *pRow, uint32_t cx, uint16_t& Value) const
 {
 
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 3);
 
 	const uint8_t* pData = pRow + ((cx << 1) + cx);
@@ -331,26 +331,26 @@ bool FSR_Buffer2D_RGB888::Read(const uint8_t *pRow, uint32_t cx, uint16_t& Value
 }
 
 // maybe normalized [0, 1] before return.
-bool FSR_Buffer2D_RGB888::Read(const uint8_t *pRow, uint32_t cx, float& R, float& G, float& B, float& A) const
+bool FSR_Buffer2D_RGB888::Read(const uint8_t *pRow, uint32_t cx, float RGBA[]) const
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 3);
 
 	const uint8_t* pData = pRow + ((cx << 1) + cx);
-	R = *(pData);
-	G = *(pData + 1);
-	B = *(pData + 2);
+	RGBA[0] = pData[0];
+	RGBA[1] = pData[1];
+	RGBA[2] = pData[2];
 
-	R *= ONE_OVER_255;
-	G *= ONE_OVER_255;
-	B *= ONE_OVER_255;
-	A = 1.f;
+	RGBA[0] *= ONE_OVER_255;
+	RGBA[1] *= ONE_OVER_255;
+	RGBA[2] *= ONE_OVER_255;
+	RGBA[3] = 1.f;
 	return true;
 }
 
 bool FSR_Buffer2D_RGB888::Read(const uint8_t *pRow, uint32_t cx, float& Value) const
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 3);
 
 	const uint8_t* pData = pRow + ((cx << 1) + cx);
@@ -359,42 +359,44 @@ bool FSR_Buffer2D_RGB888::Read(const uint8_t *pRow, uint32_t cx, float& Value) c
 	return true;
 }
 
-bool FSR_Buffer2D_RGB888::Write(uint8_t *pRow, uint32_t cx, uint8_t R, uint8_t G, uint8_t B, uint8_t A)
+bool FSR_Buffer2D_RGB888::Write(uint8_t *pRow, uint32_t cx, const uint8_t RGBA[])
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 3);
 
 	uint8_t* pData = pRow + ((cx << 1) + cx);
-	*pData = R;  *(pData + 1) = G; *(pData + 2) = B; A = 255;
+	pData[0] = RGBA[0];  
+	pData[1] = RGBA[1]; 
+	pData[2] = RGBA[2];
 
 	return true;
 }
 
 bool FSR_Buffer2D_RGB888::Write(uint8_t *pRow, uint32_t cx, uint16_t& Value)
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 3);
 
 	uint8_t* pData = pRow + ((cx << 1) + cx);
 	return false;
 }
 
-bool FSR_Buffer2D_RGB888::Write(uint8_t *pRow, uint32_t cx, float R, float G, float B, float A)
+bool FSR_Buffer2D_RGB888::Write(uint8_t *pRow, uint32_t cx, const float RGBA[])
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 3);
 
 	uint8_t* pData = pRow + ((cx << 1) + cx);
-	*pData = glm::clamp<uint8_t>(uint8_t(R * 255), 0, 255);
-	*(pData + 1) = glm::clamp<uint8_t>(uint8_t(G * 255), 0, 255);
-	*(pData + 2) = glm::clamp<uint8_t>(uint8_t(B * 255), 0, 255);
+	pData[0] = glm::clamp<uint8_t>(uint8_t(RGBA[0] * 255), 0, 255);
+	pData[1] = glm::clamp<uint8_t>(uint8_t(RGBA[1] * 255), 0, 255);
+	pData[2] = glm::clamp<uint8_t>(uint8_t(RGBA[2] * 255), 0, 255);
 
 	return true;
 }
 
 bool FSR_Buffer2D_RGB888::Write(uint8_t *pRow, uint32_t cx, float R)
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 3);
 
 	uint8_t* pData = pRow + ((cx << 1) + cx);
@@ -403,11 +405,11 @@ bool FSR_Buffer2D_RGB888::Write(uint8_t *pRow, uint32_t cx, float R)
 	return true;
 }
 
-void FSR_Buffer2D_RGB888::Clear(float R, float G, float B, float A)
+void FSR_Buffer2D_RGB888::Clear(const float RGBA[])
 {
-	uint8_t R8 = glm::clamp<uint8_t>(uint8_t(R * 255), 0, 255);
-	uint8_t G8 = glm::clamp<uint8_t>(uint8_t(G * 255), 0, 255);
-	uint8_t B8 = glm::clamp<uint8_t>(uint8_t(B * 255), 0, 255);
+	uint8_t R8 = glm::clamp<uint8_t>(uint8_t(RGBA[0] * 255), 0, 255);
+	uint8_t G8 = glm::clamp<uint8_t>(uint8_t(RGBA[1] * 255), 0, 255);
+	uint8_t B8 = glm::clamp<uint8_t>(uint8_t(RGBA[2] * 255), 0, 255);
 	uint8_t* pData = reinterpret_cast<uint8_t*>(_buffer.data());
 
 	// fill first line
@@ -432,20 +434,23 @@ void FSR_Buffer2D_RGB888::Clear(float R, float G, float B, float A)
 //////////////////////////////////////////////////////////////////////////
 // PIXEL_FORMAT_RGBA8888
 
-bool FSR_Buffer2D_RGBA8888::Read(const uint8_t *pRow, uint32_t cx, uint8_t& R, uint8_t& G, uint8_t& B, uint8_t& A) const
+bool FSR_Buffer2D_RGBA8888::Read(const uint8_t *pRow, uint32_t cx, uint8_t RGBA[]) const
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 4);
 
 	const uint8_t* pData = pRow + (cx << 2);
-	R = *pData;  G = *(pData + 1); B = *(pData + 2); A = *(pData + 3);
+	RGBA[0] = pData[0];
+	RGBA[1] = pData[1];
+	RGBA[2] = pData[2];
+	RGBA[3] = pData[3];
 
 	return true;
 }
 
 bool FSR_Buffer2D_RGBA8888::Read(const uint8_t *pRow, uint32_t cx, uint16_t& Value) const
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 4);
 
 	const uint8_t* pData = pRow + (cx << 2);
@@ -453,26 +458,23 @@ bool FSR_Buffer2D_RGBA8888::Read(const uint8_t *pRow, uint32_t cx, uint16_t& Val
 }
 
 // maybe normalized [0, 1] before return.
-bool FSR_Buffer2D_RGBA8888::Read(const uint8_t *pRow, uint32_t cx, float& R, float& G, float& B, float& A) const
+bool FSR_Buffer2D_RGBA8888::Read(const uint8_t *pRow, uint32_t cx, float RGBA[]) const
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 4);
 
 	const uint8_t* pData = pRow + (cx << 2);
 	
 	VectorRegister clr0 = VectorLoadByte4(pData);
 	VectorRegister clr1 = VectorMultiply(clr0, VectorRegsiterConstants::FloatOneOver255);
-	R = VectorGetComponent(clr1, 0);
-	G = VectorGetComponent(clr1, 1);
-	B = VectorGetComponent(clr1, 2);
-	A = VectorGetComponent(clr1, 3);
+	VectorStore(clr1, RGBA);
 
 	return true;
 }
 
 bool FSR_Buffer2D_RGBA8888::Read(const uint8_t *pRow, uint32_t cx, float& Value) const
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 4);
 
 	const uint8_t* pData = pRow + (cx << 2);
@@ -481,34 +483,37 @@ bool FSR_Buffer2D_RGBA8888::Read(const uint8_t *pRow, uint32_t cx, float& Value)
 	return true;
 }
 
-bool FSR_Buffer2D_RGBA8888::Write(uint8_t *pRow, uint32_t cx, uint8_t R, uint8_t G, uint8_t B, uint8_t A)
+bool FSR_Buffer2D_RGBA8888::Write(uint8_t *pRow, uint32_t cx, const uint8_t RGBA[])
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 4);
 
 	uint8_t* pData = pRow + (cx << 2);
-	*pData = R;  *(pData + 1) = G; *(pData + 2) = B; *(pData + 3) = A;
+	pData[0] = RGBA[0];
+	pData[1] = RGBA[1];
+	pData[2] = RGBA[2];
+	pData[3] = RGBA[3];
 
 	return true;
 }
 
 bool FSR_Buffer2D_RGBA8888::Write(uint8_t *pRow, uint32_t cx, uint16_t& Value)
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 4);
 
 	uint8_t* pData = pRow + (cx << 2);
 	return false;
 }
 
-bool FSR_Buffer2D_RGBA8888::Write(uint8_t *pRow, uint32_t cx, float R, float G, float B, float A)
+bool FSR_Buffer2D_RGBA8888::Write(uint8_t *pRow, uint32_t cx, const float RGBA[])
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 4);
 
 	uint8_t* pData = pRow + (cx << 2);
 
-	VectorRegister clr0 = MakeVectorRegister(R, G, B, A);
+	VectorRegister clr0 = VectorLoad(RGBA);
 	VectorRegister clr1 = VectorMultiply(clr0, VectorRegsiterConstants::Float255);
 	VectorStoreByte4(clr1, pData);
 
@@ -517,7 +522,7 @@ bool FSR_Buffer2D_RGBA8888::Write(uint8_t *pRow, uint32_t cx, float R, float G, 
 
 bool FSR_Buffer2D_RGBA8888::Write(uint8_t *pRow, uint32_t cx, float R)
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 4);
 
 	uint8_t* pData = pRow + (cx << 2);
@@ -526,12 +531,12 @@ bool FSR_Buffer2D_RGBA8888::Write(uint8_t *pRow, uint32_t cx, float R)
 	return true;
 }
 
-void FSR_Buffer2D_RGBA8888::Clear(float R, float G, float B, float A)
+void FSR_Buffer2D_RGBA8888::Clear(const float RGBA[])
 {
-	uint8_t R8 = glm::clamp<uint8_t>(uint8_t(R * 255), 0, 255);
-	uint8_t G8 = glm::clamp<uint8_t>(uint8_t(G * 255), 0, 255);
-	uint8_t B8 = glm::clamp<uint8_t>(uint8_t(B * 255), 0, 255);
-	uint8_t A8 = glm::clamp<uint8_t>(uint8_t(A * 255), 0, 255);
+	uint8_t R8 = glm::clamp<uint8_t>(uint8_t(RGBA[0] * 255), 0, 255);
+	uint8_t G8 = glm::clamp<uint8_t>(uint8_t(RGBA[1] * 255), 0, 255);
+	uint8_t B8 = glm::clamp<uint8_t>(uint8_t(RGBA[2] * 255), 0, 255);
+	uint8_t A8 = glm::clamp<uint8_t>(uint8_t(RGBA[3] * 255), 0, 255);
 	uint8_t* pData = reinterpret_cast<uint8_t*>(_buffer.data());
 
 	// fill first line
@@ -557,24 +562,24 @@ void FSR_Buffer2D_RGBA8888::Clear(float R, float G, float B, float A)
 //////////////////////////////////////////////////////////////////////////
 // FSR_Buffer2D_RGBF32
 
-bool FSR_Buffer2D_RGBF32::Read(const uint8_t *pRow, uint32_t cx, uint8_t& R, uint8_t& G, uint8_t& B, uint8_t& A) const
+bool FSR_Buffer2D_RGBF32::Read(const uint8_t *pRow, uint32_t cx, uint8_t RGBA[]) const
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 12);
 
 	const uint8_t* pData = pRow + ((cx << 3) + (cx << 2));
 	const float* pFloat = reinterpret_cast<const float*>(pData);
-	R = glm::clamp<uint8_t>(uint8_t(*pFloat * 255), 0, 255);
-	G = glm::clamp<uint8_t>(uint8_t(*(pFloat + 1) * 255), 0, 255);
-	B = glm::clamp<uint8_t>(uint8_t(*(pFloat + 2) * 255), 0, 255);
-	A = 255;
+	RGBA[0] = glm::clamp<uint8_t>(uint8_t(pFloat[0] * 255), 0, 255);
+	RGBA[1] = glm::clamp<uint8_t>(uint8_t(pFloat[1] * 255), 0, 255);
+	RGBA[2] = glm::clamp<uint8_t>(uint8_t(pFloat[2] * 255), 0, 255);
+	RGBA[3] = 255;
 
 	return true;
 }
 
 bool FSR_Buffer2D_RGBF32::Read(const uint8_t *pRow, uint32_t cx, uint16_t& Value) const
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 12);
 
 	const uint8_t* pData = pRow + ((cx << 3) + (cx << 2));
@@ -582,23 +587,24 @@ bool FSR_Buffer2D_RGBF32::Read(const uint8_t *pRow, uint32_t cx, uint16_t& Value
 }
 
 // maybe normalized [0, 1] before return.
-bool FSR_Buffer2D_RGBF32::Read(const uint8_t *pRow, uint32_t cx, float& R, float& G, float& B, float& A) const
+bool FSR_Buffer2D_RGBF32::Read(const uint8_t *pRow, uint32_t cx, float RGBA[]) const
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 12);
 
 	const uint8_t* pData = pRow + ((cx << 3) + (cx << 2));
 	const float* pFloat = reinterpret_cast<const float*>(pData);
-	R = *pFloat;
-	G = *(pFloat + 1);
-	B = *(pFloat + 2);
+	RGBA[0] = pFloat[0];
+	RGBA[1] = pFloat[1];
+	RGBA[2] = pFloat[2];
+	RGBA[3] = 1.f;
 
 	return true;
 }
 
 bool FSR_Buffer2D_RGBF32::Read(const uint8_t *pRow, uint32_t cx, float& Value) const
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 12);
 
 	const uint8_t* pData = pRow + ((cx << 3) + (cx << 2));
@@ -608,23 +614,23 @@ bool FSR_Buffer2D_RGBF32::Read(const uint8_t *pRow, uint32_t cx, float& Value) c
 	return true;
 }
 
-bool FSR_Buffer2D_RGBF32::Write(uint8_t *pRow, uint32_t cx, uint8_t R, uint8_t G, uint8_t B, uint8_t A)
+bool FSR_Buffer2D_RGBF32::Write(uint8_t *pRow, uint32_t cx, const uint8_t RGBA[])
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 12);
 
 	uint8_t* pData = pRow + ((cx << 3) + (cx << 2));
 	float* pFloat = reinterpret_cast<float*>(pData);
-	*pFloat = R * ONE_OVER_255;
-	*(pFloat + 1) = G * ONE_OVER_255;
-	*(pFloat + 2) = B * ONE_OVER_255;
+	pFloat[0] = RGBA[0] * ONE_OVER_255;
+	pFloat[1] = RGBA[1] * ONE_OVER_255;
+	pFloat[2] = RGBA[2] * ONE_OVER_255;
 
 	return true;
 }
 
 bool FSR_Buffer2D_RGBF32::Write(uint8_t *pRow, uint32_t cx, uint16_t& Value)
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 12);
 
 	uint8_t* pData = pRow + ((cx << 3) + (cx << 2));
@@ -633,23 +639,20 @@ bool FSR_Buffer2D_RGBF32::Write(uint8_t *pRow, uint32_t cx, uint16_t& Value)
 	return true;
 }
 
-bool FSR_Buffer2D_RGBF32::Write(uint8_t *pRow, uint32_t cx, float R, float G, float B, float A)
+bool FSR_Buffer2D_RGBF32::Write(uint8_t *pRow, uint32_t cx, const float RGBA[])
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 12);
 
 	uint8_t* pData = pRow + ((cx << 3) + (cx << 2));
-	float* pFloat = reinterpret_cast<float*>(pData);
-	*pFloat = R;
-	*(pFloat + 1) = G;
-	*(pFloat + 2) = B;
+	memcpy(pData, RGBA, sizeof(float)*3);
 
 	return true;
 }
 
 bool FSR_Buffer2D_RGBF32::Write(uint8_t *pRow, uint32_t cx, float R)
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 12);
 
 	uint8_t* pData = pRow + ((cx << 3) + (cx << 2));
@@ -659,16 +662,14 @@ bool FSR_Buffer2D_RGBF32::Write(uint8_t *pRow, uint32_t cx, float R)
 	return true;
 }
 
-void FSR_Buffer2D_RGBF32::Clear(float R, float G, float B, float A)
+void FSR_Buffer2D_RGBF32::Clear(const float RGBA[])
 {
 	float* pData = reinterpret_cast<float*>(_buffer.data());
 
 	// fill first line
-	for (uint32_t k = 0; k < _w; ++k)
+	for (uint32_t k = 0; k < _w; ++k, pData+=3)
 	{
-		*pData++ = R;
-		*pData++ = G;
-		*pData++ = B;
+		memcpy(pData, RGBA, sizeof(float) * 3);
 	}
 	// copy per line
 	uint32_t bytes_per_line = BytesPerLine();
@@ -685,24 +686,24 @@ void FSR_Buffer2D_RGBF32::Clear(float R, float G, float B, float A)
 //////////////////////////////////////////////////////////////////////////
 // PIXEL_FORMAT_RGBAF32
 
-bool FSR_Buffer2D_RGBAF32::Read(const uint8_t *pRow, uint32_t cx, uint8_t& R, uint8_t& G, uint8_t& B, uint8_t& A) const
+bool FSR_Buffer2D_RGBAF32::Read(const uint8_t *pRow, uint32_t cx, uint8_t RGBA[]) const
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 16);
 
 	const uint8_t* pData = pRow + (cx << 4);
 	const float* pFloat = reinterpret_cast<const float*>(pData);
-	R = glm::clamp<uint8_t>(uint8_t(*pFloat * 255), 0, 255);
-	G = glm::clamp<uint8_t>(uint8_t(*(pFloat + 1) * 255), 0, 255);
-	B = glm::clamp<uint8_t>(uint8_t(*(pFloat + 2) * 255), 0, 255);
-	A = glm::clamp<uint8_t>(uint8_t(*(pFloat + 3) * 255), 0, 255);
+	RGBA[0] = glm::clamp<uint8_t>(uint8_t(pFloat[0] * 255), 0, 255);
+	RGBA[1] = glm::clamp<uint8_t>(uint8_t(pFloat[1] * 255), 0, 255);
+	RGBA[2] = glm::clamp<uint8_t>(uint8_t(pFloat[2] * 255), 0, 255);
+	RGBA[3] = glm::clamp<uint8_t>(uint8_t(pFloat[3] * 255), 0, 255);
 
 	return true;
 }
 
 bool FSR_Buffer2D_RGBAF32::Read(const uint8_t *pRow, uint32_t cx, uint16_t& Value) const
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 16);
 
 	const uint8_t* pData = pRow + (cx << 4);
@@ -710,24 +711,24 @@ bool FSR_Buffer2D_RGBAF32::Read(const uint8_t *pRow, uint32_t cx, uint16_t& Valu
 }
 
 // maybe normalized [0, 1] before return.
-bool FSR_Buffer2D_RGBAF32::Read(const uint8_t *pRow, uint32_t cx, float& R, float& G, float& B, float& A) const
+bool FSR_Buffer2D_RGBAF32::Read(const uint8_t *pRow, uint32_t cx, float RGBA[]) const
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 16);
 
 	const uint8_t* pData = pRow + (cx << 4);
 	const float* pFloat = reinterpret_cast<const float*>(pData);
-	R = *pFloat;
-	G = *(pFloat + 1);
-	B = *(pFloat + 2);
-	A = *(pFloat + 3);
+	RGBA[0] = pFloat[0];
+	RGBA[1] = pFloat[1];
+	RGBA[2] = pFloat[2];
+	RGBA[3] = pFloat[3];
 
 	return true;
 }
 
 bool FSR_Buffer2D_RGBAF32::Read(const uint8_t *pRow, uint32_t cx, float& Value) const
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 16);
 
 	const uint8_t* pData = pRow + (cx << 4);
@@ -737,24 +738,24 @@ bool FSR_Buffer2D_RGBAF32::Read(const uint8_t *pRow, uint32_t cx, float& Value) 
 	return true;
 }
 
-bool FSR_Buffer2D_RGBAF32::Write(uint8_t *pRow, uint32_t cx, uint8_t R, uint8_t G, uint8_t B, uint8_t A)
+bool FSR_Buffer2D_RGBAF32::Write(uint8_t *pRow, uint32_t cx, const uint8_t RGBA[])
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 16);
 
 	uint8_t* pData = pRow + (cx << 4);
 	float* pFloat = reinterpret_cast<float*>(pData);
-	*pFloat = R * ONE_OVER_255;
-	*(pFloat + 1) = G * ONE_OVER_255;
-	*(pFloat + 2) = B * ONE_OVER_255;
-	*(pFloat + 3) = A * ONE_OVER_255;
+	pFloat[0] = RGBA[0] * ONE_OVER_255;
+	pFloat[1] = RGBA[1] * ONE_OVER_255;
+	pFloat[2] = RGBA[2] * ONE_OVER_255;
+	pFloat[3] = RGBA[3] * ONE_OVER_255;
 
 	return true;
 }
 
 bool FSR_Buffer2D_RGBAF32::Write(uint8_t *pRow, uint32_t cx, uint16_t& Value)
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 16);
 
 	uint8_t* pData = pRow + (cx << 4);
@@ -763,24 +764,20 @@ bool FSR_Buffer2D_RGBAF32::Write(uint8_t *pRow, uint32_t cx, uint16_t& Value)
 	return true;
 }
 
-bool FSR_Buffer2D_RGBAF32::Write(uint8_t *pRow, uint32_t cx, float R, float G, float B, float A)
+bool FSR_Buffer2D_RGBAF32::Write(uint8_t *pRow, uint32_t cx, const float RGBA[])
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 16);
 
 	uint8_t* pData = pRow + (cx << 4);
-	float* pFloat = reinterpret_cast<float*>(pData);
-	*pFloat = R;
-	*(pFloat + 1) = G;
-	*(pFloat + 2) = B;
-	*(pFloat + 3) = A;
+	memcpy(pData, RGBA, sizeof(float) * 4);
 
 	return true;
 }
 
 bool FSR_Buffer2D_RGBAF32::Write(uint8_t *pRow, uint32_t cx, float R)
 {
-	assert(cx < _w&& cy < _h);
+	assert(cx < _w);
 	assert(_bytes_per_pixel == 16);
 
 	uint8_t* pData = pRow + (cx << 4);
@@ -790,17 +787,14 @@ bool FSR_Buffer2D_RGBAF32::Write(uint8_t *pRow, uint32_t cx, float R)
 	return true;
 }
 
-void FSR_Buffer2D_RGBAF32::Clear(float R, float G, float B, float A)
+void FSR_Buffer2D_RGBAF32::Clear(const float RGBA[])
 {
 	float* pData = reinterpret_cast<float*>(_buffer.data());
 
 	// fill first line
-	for (uint32_t k = 0; k < _w; ++k)
+	for (uint32_t k = 0; k < _w; ++k, pData+=4)
 	{
-		*pData++ = R;
-		*pData++ = G;
-		*pData++ = B;
-		*pData++ = A;
+		memcpy(pData, RGBA, sizeof(float) * 4);
 	}
 	// copy per line
 	uint32_t bytes_per_line = BytesPerLine();

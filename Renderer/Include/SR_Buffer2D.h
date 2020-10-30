@@ -22,12 +22,12 @@ public:
 
 
 	// read a element, (cx,cy) is element coordination
-	bool Read(uint32_t cx, uint32_t cy, uint8_t& R, uint8_t& G, uint8_t& B, uint8_t& A) const 
+	bool Read(uint32_t cx, uint32_t cy, uint8_t RGBA[]) const 
 	{
 		uint32_t offset = _bytes_per_line * cy;
 		const uint8_t* pData = _buffer.data() + offset;
 	
-		return Read(pData, cx, R, G, B, A); 
+		return Read(pData, cx, RGBA); 
 	}
 
 	bool Read(uint32_t cx, uint32_t cy, uint16_t& Value) const 
@@ -39,12 +39,12 @@ public:
 	}
 
 	// maybe normalized [0, 1] before return.
-	bool Read(uint32_t cx, uint32_t cy, float& R, float& G, float& B, float& A) const 
+	bool Read(uint32_t cx, uint32_t cy, float RGBA[]) const 
 	{ 
 		uint32_t offset = _bytes_per_line * cy;
 		const uint8_t* pData = _buffer.data() + offset;
 
-		return Read(pData, cx, R, G, B, A);
+		return Read(pData, cx, RGBA);
 	}
 
 	bool Read(uint32_t cx, uint32_t cy, float& Value) const 
@@ -55,12 +55,12 @@ public:
 		return Read(pData, cx, Value);
 	}
 
-	bool Write(uint32_t cx, uint32_t cy, uint8_t R, uint8_t G, uint8_t B, uint8_t A) 
+	bool Write(uint32_t cx, uint32_t cy, const uint8_t RGBA[]) 
 	{ 
 		uint32_t offset = _bytes_per_line * cy;
 		uint8_t* pData = _buffer.data() + offset;
 
-		return Write(pData, cx, R, G, B, A);
+		return Write(pData, cx, RGBA);
 	}
 
 	bool Write(uint32_t cx, uint32_t cy, uint16_t& Value)
@@ -71,12 +71,12 @@ public:
 		return Write(pData, cx, Value);
 	}
 
-	bool Write(uint32_t cx, uint32_t cy, float R, float G, float B, float A)
+	bool Write(uint32_t cx, uint32_t cy, const float RGBA[])
 	{
 		uint32_t offset = _bytes_per_line * cy;
 		uint8_t* pData = _buffer.data() + offset;
 
-		return Write(pData, cx, R, G, B, A);
+		return Write(pData, cx, RGBA);
 	}
 
 	bool Write(uint32_t cx, uint32_t cy, float Value)
@@ -88,17 +88,17 @@ public:
 	}
 
 	// read a element, (cx,cy) is element coordination
-	virtual bool Read(const uint8_t *pRow, uint32_t cx, uint8_t& R, uint8_t& G, uint8_t& B, uint8_t& A) const { return false; }
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, uint8_t RGBA[]) const { return false; }
 	virtual bool Read(const uint8_t *pRow, uint32_t cx, uint16_t& Value) const { return false; }
 	// maybe normalized [0, 1] before return.
-	virtual bool Read(const uint8_t *pRow, uint32_t cx, float& R, float& G, float& B, float& A) const { return false; }
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, float RGBA[]) const { return false; }
 	virtual bool Read(const uint8_t *pRow, uint32_t cx, float& Value) const { return false; }
 
-	virtual bool Write(uint8_t *pRow, uint32_t cx, uint8_t R, uint8_t G, uint8_t B, uint8_t A) { return false; }
+	virtual bool Write(uint8_t *pRow, uint32_t cx, const uint8_t RGBA[]) { return false; }
 	virtual bool Write(uint8_t *pRow, uint32_t cx, uint16_t& Value) { return false; }
-	virtual bool Write(uint8_t *pRow, uint32_t cx, float R, float G, float B, float A) { return false; }
+	virtual bool Write(uint8_t *pRow, uint32_t cx, const float RGBA[]) { return false; }
 	virtual bool Write(uint8_t *pRow, uint32_t cx, float Value) { return false; }
-	virtual void Clear(float R, float G, float B, float A) {}
+	virtual void Clear(const float RGBA[]) {}
 
 	// get row pointer
 	uint8_t* GetRowData(uint32_t cy) { return _buffer.data() + (cy * _bytes_per_line); }
@@ -106,8 +106,8 @@ public:
 	uint32_t BytesPerLine() const { return _bytes_per_line; }
 
 	// sample element
-	virtual bool Sample2DNearest(float u, float v, float& R, float& G, float& B, float& A) const;
-	virtual bool Sample2DLinear(float u, float v, float& R, float& G, float& B, float& A) const;
+	virtual bool Sample2DNearest(float u, float v, float RGBA[]) const;
+	virtual bool Sample2DLinear(float u, float v, float RGBA[]) const;
 
 protected:
 	FSR_Buffer2D(uint32_t width, uint32_t height, EPixelFormat pixelformat);
@@ -144,17 +144,17 @@ public:
 	{}
 
 	// read a element, (cx,cy) is element coordination
-	virtual bool Read(const uint8_t *pRow, uint32_t cx, uint8_t& R, uint8_t& G, uint8_t& B, uint8_t& A) const override;
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, uint8_t RGBA[]) const override;
 	virtual bool Read(const uint8_t *pRow, uint32_t cx, uint16_t& Value) const override;
 	// maybe normalized [0, 1] before return.
-	virtual bool Read(const uint8_t *pRow, uint32_t cx, float& R, float& G, float& B, float& A) const override;
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, float RGBA[]) const override;
 	virtual bool Read(const uint8_t *pRow, uint32_t cx, float& Value) const override;
 
-	virtual bool Write(uint8_t *pRow, uint32_t cx, uint8_t R, uint8_t G, uint8_t B, uint8_t A) override;
+	virtual bool Write(uint8_t *pRow, uint32_t cx, const uint8_t RGBA[]) override;
 	virtual bool Write(uint8_t *pRow, uint32_t cx, uint16_t& Value) override;
-	virtual bool Write(uint8_t *pRow, uint32_t cx, float R, float G, float B, float A) override;
+	virtual bool Write(uint8_t *pRow, uint32_t cx, const float RGBA[]) override;
 	virtual bool Write(uint8_t *pRow, uint32_t cx, float Value) override;
-	virtual void Clear(float R, float G, float B, float A) override;
+	virtual void Clear(const float RGBA[]) override;
 };
 
 class FSR_Buffer2D_F32 : public FSR_Buffer2D
@@ -165,17 +165,17 @@ public:
 	{}
 
 	// read a element, (cx,cy) is element coordination
-	virtual bool Read(const uint8_t *pRow, uint32_t cx, uint8_t& R, uint8_t& G, uint8_t& B, uint8_t& A) const override;
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, uint8_t RGBA[]) const override;
 	virtual bool Read(const uint8_t *pRow, uint32_t cx, uint16_t& Value) const override;
 	// maybe normalized [0, 1] before return.
-	virtual bool Read(const uint8_t *pRow, uint32_t cx, float& R, float& G, float& B, float& A) const override;
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, float RGBA[]) const override;
 	virtual bool Read(const uint8_t *pRow, uint32_t cx, float& Value) const override;
 
-	virtual bool Write(uint8_t *pRow, uint32_t cx, uint8_t R, uint8_t G, uint8_t B, uint8_t A) override;
+	virtual bool Write(uint8_t *pRow, uint32_t cx, const uint8_t RGBA[]) override;
 	virtual bool Write(uint8_t *pRow, uint32_t cx, uint16_t& Value) override;
-	virtual bool Write(uint8_t *pRow, uint32_t cx, float R, float G, float B, float A) override;
+	virtual bool Write(uint8_t *pRow, uint32_t cx, const float RGBA[]) override;
 	virtual bool Write(uint8_t *pRow, uint32_t cx, float Value) override;
-	virtual void Clear(float R, float G, float B, float A) override;
+	virtual void Clear(const float RGBA[]) override;
 };
 
 class FSR_Buffer2D_RGB888 : public FSR_Buffer2D
@@ -186,17 +186,17 @@ public:
 	{}
 
 	// read a element, (cx,cy) is element coordination
-	virtual bool Read(const uint8_t *pRow, uint32_t cx, uint8_t& R, uint8_t& G, uint8_t& B, uint8_t& A) const override;
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, uint8_t RGBA[]) const override;
 	virtual bool Read(const uint8_t *pRow, uint32_t cx, uint16_t& Value) const override;
 	// maybe normalized [0, 1] before return.
-	virtual bool Read(const uint8_t *pRow, uint32_t cx, float& R, float& G, float& B, float& A) const override;
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, float RGBA[]) const override;
 	virtual bool Read(const uint8_t *pRow, uint32_t cx, float& Value) const override;
 
-	virtual bool Write(uint8_t *pRow, uint32_t cx, uint8_t R, uint8_t G, uint8_t B, uint8_t A) override;
+	virtual bool Write(uint8_t *pRow, uint32_t cx, const uint8_t RGBA[]) override;
 	virtual bool Write(uint8_t *pRow, uint32_t cx, uint16_t& Value) override;
-	virtual bool Write(uint8_t *pRow, uint32_t cx, float R, float G, float B, float A) override;
+	virtual bool Write(uint8_t *pRow, uint32_t cx, const float RGBA[]) override;
 	virtual bool Write(uint8_t *pRow, uint32_t cx, float Value) override;
-	virtual void Clear(float R, float G, float B, float A) override;
+	virtual void Clear(const float RGBA[]) override;
 };
 
 class FSR_Buffer2D_RGBA8888 : public FSR_Buffer2D
@@ -207,17 +207,17 @@ public:
 	{}
 
 	// read a element, (cx,cy) is element coordination
-	virtual bool Read(const uint8_t *pRow, uint32_t cx, uint8_t& R, uint8_t& G, uint8_t& B, uint8_t& A) const override;
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, uint8_t RGBA[]) const override;
 	virtual bool Read(const uint8_t *pRow, uint32_t cx, uint16_t& Value) const override;
 	// maybe normalized [0, 1] before return.
-	virtual bool Read(const uint8_t *pRow, uint32_t cx, float& R, float& G, float& B, float& A) const override;
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, float RGBA[]) const override;
 	virtual bool Read(const uint8_t *pRow, uint32_t cx, float& Value) const override;
 
-	virtual bool Write(uint8_t *pRow, uint32_t cx, uint8_t R, uint8_t G, uint8_t B, uint8_t A) override;
+	virtual bool Write(uint8_t *pRow, uint32_t cx, const uint8_t RGBA[]) override;
 	virtual bool Write(uint8_t *pRow, uint32_t cx, uint16_t& Value) override;
-	virtual bool Write(uint8_t *pRow, uint32_t cx, float R, float G, float B, float A) override;
+	virtual bool Write(uint8_t *pRow, uint32_t cx, const float RGBA[]) override;
 	virtual bool Write(uint8_t *pRow, uint32_t cx, float Value) override;
-	virtual void Clear(float R, float G, float B, float A) override;
+	virtual void Clear(const float RGBA[]) override;
 };
 
 class FSR_Buffer2D_RGBF32 : public FSR_Buffer2D
@@ -228,17 +228,17 @@ public:
 	{}
 
 	// read a element, (cx,cy) is element coordination
-	virtual bool Read(const uint8_t *pRow, uint32_t cx, uint8_t& R, uint8_t& G, uint8_t& B, uint8_t& A) const override;
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, uint8_t RGBA[]) const override;
 	virtual bool Read(const uint8_t *pRow, uint32_t cx, uint16_t& Value) const override;
 	// maybe normalized [0, 1] before return.
-	virtual bool Read(const uint8_t *pRow, uint32_t cx, float& R, float& G, float& B, float& A) const override;
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, float RGBA[]) const override;
 	virtual bool Read(const uint8_t *pRow, uint32_t cx, float& Value) const override;
 
-	virtual bool Write(uint8_t *pRow, uint32_t cx, uint8_t R, uint8_t G, uint8_t B, uint8_t A) override;
+	virtual bool Write(uint8_t *pRow, uint32_t cx, const uint8_t RGBA[]) override;
 	virtual bool Write(uint8_t *pRow, uint32_t cx, uint16_t& Value) override;
-	virtual bool Write(uint8_t *pRow, uint32_t cx, float R, float G, float B, float A) override;
+	virtual bool Write(uint8_t *pRow, uint32_t cx, const float RGBA[]) override;
 	virtual bool Write(uint8_t *pRow, uint32_t cx, float Value) override;
-	virtual void Clear(float R, float G, float B, float A) override;
+	virtual void Clear(const float RGBA[]) override;
 };
 
 class FSR_Buffer2D_RGBAF32 : public FSR_Buffer2D
@@ -249,17 +249,17 @@ public:
 	{}
 
 	// read a element, (cx,cy) is element coordination
-	virtual bool Read(const uint8_t *pRow, uint32_t cx, uint8_t& R, uint8_t& G, uint8_t& B, uint8_t& A) const override;
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, uint8_t RGBA[]) const override;
 	virtual bool Read(const uint8_t *pRow, uint32_t cx, uint16_t& Value) const override;
 	// maybe normalized [0, 1] before return.
-	virtual bool Read(const uint8_t *pRow, uint32_t cx, float& R, float& G, float& B, float& A) const override;
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, float RGBA[]) const override;
 	virtual bool Read(const uint8_t *pRow, uint32_t cx, float& Value) const override;
 
-	virtual bool Write(uint8_t *pRow, uint32_t cx, uint8_t R, uint8_t G, uint8_t B, uint8_t A) override;
+	virtual bool Write(uint8_t *pRow, uint32_t cx, const uint8_t RGBA[]) override;
 	virtual bool Write(uint8_t *pRow, uint32_t cx, uint16_t& Value) override;
-	virtual bool Write(uint8_t *pRow, uint32_t cx, float R, float G, float B, float A) override;
+	virtual bool Write(uint8_t *pRow, uint32_t cx, const float RGBA[]) override;
 	virtual bool Write(uint8_t *pRow, uint32_t cx, float Value) override;
-	virtual void Clear(float R, float G, float B, float A) override;
+	virtual void Clear(const float RGBA[]) override;
 };
 
 
