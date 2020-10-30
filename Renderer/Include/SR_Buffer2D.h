@@ -20,20 +20,88 @@ public:
 	const uint8_t* Data() const { return _buffer.data(); }
 	uint8_t* Data() { return _buffer.data(); }
 
-	// read a element, (cx,cy) is element coordination
-	virtual bool Read(uint32_t cx, uint32_t cy, uint8_t& R, uint8_t& G, uint8_t& B, uint8_t& A) const { return false; }
-	virtual bool Read(uint32_t cx, uint32_t cy, uint16_t& Value) const { return false; }
-	// maybe normalized [0, 1] before return.
-	virtual bool Read(uint32_t cx, uint32_t cy, float& R, float& G, float& B, float& A) const { return false; }
-	virtual bool Read(uint32_t cx, uint32_t cy, float& Value) const { return false; }
 
-	virtual bool Write(uint32_t cx, uint32_t cy, uint8_t R, uint8_t G, uint8_t B, uint8_t A) { return false; }
-	virtual bool Write(uint32_t cx, uint32_t cy, uint16_t& Value) { return false; }
-	virtual bool Write(uint32_t cx, uint32_t cy, float R, float G, float B, float A) { return false; }
-	virtual bool Write(uint32_t cx, uint32_t cy, float Value) { return false; }
+	// read a element, (cx,cy) is element coordination
+	bool Read(uint32_t cx, uint32_t cy, uint8_t& R, uint8_t& G, uint8_t& B, uint8_t& A) const 
+	{
+		uint32_t offset = _bytes_per_line * cy;
+		const uint8_t* pData = _buffer.data() + offset;
+	
+		return Read(pData, cx, R, G, B, A); 
+	}
+
+	bool Read(uint32_t cx, uint32_t cy, uint16_t& Value) const 
+	{
+		uint32_t offset = _bytes_per_line * cy;
+		const uint8_t* pData = _buffer.data() + offset;
+
+		return Read(pData, cx, Value);
+	}
+
+	// maybe normalized [0, 1] before return.
+	bool Read(uint32_t cx, uint32_t cy, float& R, float& G, float& B, float& A) const 
+	{ 
+		uint32_t offset = _bytes_per_line * cy;
+		const uint8_t* pData = _buffer.data() + offset;
+
+		return Read(pData, cx, R, G, B, A);
+	}
+
+	bool Read(uint32_t cx, uint32_t cy, float& Value) const 
+	{ 
+		uint32_t offset = _bytes_per_line * cy;
+		const uint8_t* pData = _buffer.data() + offset;
+
+		return Read(pData, cx, Value);
+	}
+
+	bool Write(uint32_t cx, uint32_t cy, uint8_t R, uint8_t G, uint8_t B, uint8_t A) 
+	{ 
+		uint32_t offset = _bytes_per_line * cy;
+		uint8_t* pData = _buffer.data() + offset;
+
+		return Write(pData, cx, R, G, B, A);
+	}
+
+	bool Write(uint32_t cx, uint32_t cy, uint16_t& Value)
+	{
+		uint32_t offset = _bytes_per_line * cy;
+		uint8_t* pData = _buffer.data() + offset;
+
+		return Write(pData, cx, Value);
+	}
+
+	bool Write(uint32_t cx, uint32_t cy, float R, float G, float B, float A)
+	{
+		uint32_t offset = _bytes_per_line * cy;
+		uint8_t* pData = _buffer.data() + offset;
+
+		return Write(pData, cx, R, G, B, A);
+	}
+
+	bool Write(uint32_t cx, uint32_t cy, float Value)
+	{
+		uint32_t offset = _bytes_per_line * cy;
+		uint8_t* pData = _buffer.data() + offset;
+
+		return Write(pData, cx, Value);
+	}
+
+	// read a element, (cx,cy) is element coordination
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, uint8_t& R, uint8_t& G, uint8_t& B, uint8_t& A) const { return false; }
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, uint16_t& Value) const { return false; }
+	// maybe normalized [0, 1] before return.
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, float& R, float& G, float& B, float& A) const { return false; }
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, float& Value) const { return false; }
+
+	virtual bool Write(uint8_t *pRow, uint32_t cx, uint8_t R, uint8_t G, uint8_t B, uint8_t A) { return false; }
+	virtual bool Write(uint8_t *pRow, uint32_t cx, uint16_t& Value) { return false; }
+	virtual bool Write(uint8_t *pRow, uint32_t cx, float R, float G, float B, float A) { return false; }
+	virtual bool Write(uint8_t *pRow, uint32_t cx, float Value) { return false; }
 	virtual void Clear(float R, float G, float B, float A) {}
 
 	// get row pointer
+	uint8_t* GetRowData(uint32_t cy) { return _buffer.data() + (cy * _bytes_per_line); }
 	const uint8_t* GetRowData(uint32_t cy) const { return _buffer.data() + (cy * _bytes_per_line); }
 	uint32_t BytesPerLine() const { return _bytes_per_line; }
 
@@ -76,16 +144,16 @@ public:
 	{}
 
 	// read a element, (cx,cy) is element coordination
-	virtual bool Read(uint32_t cx, uint32_t cy, uint8_t& R, uint8_t& G, uint8_t& B, uint8_t& A) const override;
-	virtual bool Read(uint32_t cx, uint32_t cy, uint16_t& Value) const override;
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, uint8_t& R, uint8_t& G, uint8_t& B, uint8_t& A) const override;
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, uint16_t& Value) const override;
 	// maybe normalized [0, 1] before return.
-	virtual bool Read(uint32_t cx, uint32_t cy, float& R, float& G, float& B, float& A) const override;
-	virtual bool Read(uint32_t cx, uint32_t cy, float& Value) const override;
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, float& R, float& G, float& B, float& A) const override;
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, float& Value) const override;
 
-	virtual bool Write(uint32_t cx, uint32_t cy, uint8_t R, uint8_t G, uint8_t B, uint8_t A) override;
-	virtual bool Write(uint32_t cx, uint32_t cy, uint16_t& Value) override;
-	virtual bool Write(uint32_t cx, uint32_t cy, float R, float G, float B, float A) override;
-	virtual bool Write(uint32_t cx, uint32_t cy, float Value) override;
+	virtual bool Write(uint8_t *pRow, uint32_t cx, uint8_t R, uint8_t G, uint8_t B, uint8_t A) override;
+	virtual bool Write(uint8_t *pRow, uint32_t cx, uint16_t& Value) override;
+	virtual bool Write(uint8_t *pRow, uint32_t cx, float R, float G, float B, float A) override;
+	virtual bool Write(uint8_t *pRow, uint32_t cx, float Value) override;
 	virtual void Clear(float R, float G, float B, float A) override;
 };
 
@@ -97,16 +165,16 @@ public:
 	{}
 
 	// read a element, (cx,cy) is element coordination
-	virtual bool Read(uint32_t cx, uint32_t cy, uint8_t& R, uint8_t& G, uint8_t& B, uint8_t& A) const override;
-	virtual bool Read(uint32_t cx, uint32_t cy, uint16_t& Value) const override;
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, uint8_t& R, uint8_t& G, uint8_t& B, uint8_t& A) const override;
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, uint16_t& Value) const override;
 	// maybe normalized [0, 1] before return.
-	virtual bool Read(uint32_t cx, uint32_t cy, float& R, float& G, float& B, float& A) const override;
-	virtual bool Read(uint32_t cx, uint32_t cy, float& Value) const override;
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, float& R, float& G, float& B, float& A) const override;
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, float& Value) const override;
 
-	virtual bool Write(uint32_t cx, uint32_t cy, uint8_t R, uint8_t G, uint8_t B, uint8_t A) override;
-	virtual bool Write(uint32_t cx, uint32_t cy, uint16_t& Value) override;
-	virtual bool Write(uint32_t cx, uint32_t cy, float R, float G, float B, float A) override;
-	virtual bool Write(uint32_t cx, uint32_t cy, float Value) override;
+	virtual bool Write(uint8_t *pRow, uint32_t cx, uint8_t R, uint8_t G, uint8_t B, uint8_t A) override;
+	virtual bool Write(uint8_t *pRow, uint32_t cx, uint16_t& Value) override;
+	virtual bool Write(uint8_t *pRow, uint32_t cx, float R, float G, float B, float A) override;
+	virtual bool Write(uint8_t *pRow, uint32_t cx, float Value) override;
 	virtual void Clear(float R, float G, float B, float A) override;
 };
 
@@ -118,16 +186,16 @@ public:
 	{}
 
 	// read a element, (cx,cy) is element coordination
-	virtual bool Read(uint32_t cx, uint32_t cy, uint8_t& R, uint8_t& G, uint8_t& B, uint8_t& A) const override;
-	virtual bool Read(uint32_t cx, uint32_t cy, uint16_t& Value) const override;
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, uint8_t& R, uint8_t& G, uint8_t& B, uint8_t& A) const override;
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, uint16_t& Value) const override;
 	// maybe normalized [0, 1] before return.
-	virtual bool Read(uint32_t cx, uint32_t cy, float& R, float& G, float& B, float& A) const override;
-	virtual bool Read(uint32_t cx, uint32_t cy, float& Value) const override;
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, float& R, float& G, float& B, float& A) const override;
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, float& Value) const override;
 
-	virtual bool Write(uint32_t cx, uint32_t cy, uint8_t R, uint8_t G, uint8_t B, uint8_t A) override;
-	virtual bool Write(uint32_t cx, uint32_t cy, uint16_t& Value) override;
-	virtual bool Write(uint32_t cx, uint32_t cy, float R, float G, float B, float A) override;
-	virtual bool Write(uint32_t cx, uint32_t cy, float Value) override;
+	virtual bool Write(uint8_t *pRow, uint32_t cx, uint8_t R, uint8_t G, uint8_t B, uint8_t A) override;
+	virtual bool Write(uint8_t *pRow, uint32_t cx, uint16_t& Value) override;
+	virtual bool Write(uint8_t *pRow, uint32_t cx, float R, float G, float B, float A) override;
+	virtual bool Write(uint8_t *pRow, uint32_t cx, float Value) override;
 	virtual void Clear(float R, float G, float B, float A) override;
 };
 
@@ -139,16 +207,16 @@ public:
 	{}
 
 	// read a element, (cx,cy) is element coordination
-	virtual bool Read(uint32_t cx, uint32_t cy, uint8_t& R, uint8_t& G, uint8_t& B, uint8_t& A) const override;
-	virtual bool Read(uint32_t cx, uint32_t cy, uint16_t& Value) const override;
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, uint8_t& R, uint8_t& G, uint8_t& B, uint8_t& A) const override;
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, uint16_t& Value) const override;
 	// maybe normalized [0, 1] before return.
-	virtual bool Read(uint32_t cx, uint32_t cy, float& R, float& G, float& B, float& A) const override;
-	virtual bool Read(uint32_t cx, uint32_t cy, float& Value) const override;
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, float& R, float& G, float& B, float& A) const override;
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, float& Value) const override;
 
-	virtual bool Write(uint32_t cx, uint32_t cy, uint8_t R, uint8_t G, uint8_t B, uint8_t A) override;
-	virtual bool Write(uint32_t cx, uint32_t cy, uint16_t& Value) override;
-	virtual bool Write(uint32_t cx, uint32_t cy, float R, float G, float B, float A) override;
-	virtual bool Write(uint32_t cx, uint32_t cy, float Value) override;
+	virtual bool Write(uint8_t *pRow, uint32_t cx, uint8_t R, uint8_t G, uint8_t B, uint8_t A) override;
+	virtual bool Write(uint8_t *pRow, uint32_t cx, uint16_t& Value) override;
+	virtual bool Write(uint8_t *pRow, uint32_t cx, float R, float G, float B, float A) override;
+	virtual bool Write(uint8_t *pRow, uint32_t cx, float Value) override;
 	virtual void Clear(float R, float G, float B, float A) override;
 };
 
@@ -160,16 +228,16 @@ public:
 	{}
 
 	// read a element, (cx,cy) is element coordination
-	virtual bool Read(uint32_t cx, uint32_t cy, uint8_t& R, uint8_t& G, uint8_t& B, uint8_t& A) const override;
-	virtual bool Read(uint32_t cx, uint32_t cy, uint16_t& Value) const override;
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, uint8_t& R, uint8_t& G, uint8_t& B, uint8_t& A) const override;
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, uint16_t& Value) const override;
 	// maybe normalized [0, 1] before return.
-	virtual bool Read(uint32_t cx, uint32_t cy, float& R, float& G, float& B, float& A) const override;
-	virtual bool Read(uint32_t cx, uint32_t cy, float& Value) const override;
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, float& R, float& G, float& B, float& A) const override;
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, float& Value) const override;
 
-	virtual bool Write(uint32_t cx, uint32_t cy, uint8_t R, uint8_t G, uint8_t B, uint8_t A) override;
-	virtual bool Write(uint32_t cx, uint32_t cy, uint16_t& Value) override;
-	virtual bool Write(uint32_t cx, uint32_t cy, float R, float G, float B, float A) override;
-	virtual bool Write(uint32_t cx, uint32_t cy, float Value) override;
+	virtual bool Write(uint8_t *pRow, uint32_t cx, uint8_t R, uint8_t G, uint8_t B, uint8_t A) override;
+	virtual bool Write(uint8_t *pRow, uint32_t cx, uint16_t& Value) override;
+	virtual bool Write(uint8_t *pRow, uint32_t cx, float R, float G, float B, float A) override;
+	virtual bool Write(uint8_t *pRow, uint32_t cx, float Value) override;
 	virtual void Clear(float R, float G, float B, float A) override;
 };
 
@@ -181,16 +249,16 @@ public:
 	{}
 
 	// read a element, (cx,cy) is element coordination
-	virtual bool Read(uint32_t cx, uint32_t cy, uint8_t& R, uint8_t& G, uint8_t& B, uint8_t& A) const override;
-	virtual bool Read(uint32_t cx, uint32_t cy, uint16_t& Value) const override;
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, uint8_t& R, uint8_t& G, uint8_t& B, uint8_t& A) const override;
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, uint16_t& Value) const override;
 	// maybe normalized [0, 1] before return.
-	virtual bool Read(uint32_t cx, uint32_t cy, float& R, float& G, float& B, float& A) const override;
-	virtual bool Read(uint32_t cx, uint32_t cy, float& Value) const override;
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, float& R, float& G, float& B, float& A) const override;
+	virtual bool Read(const uint8_t *pRow, uint32_t cx, float& Value) const override;
 
-	virtual bool Write(uint32_t cx, uint32_t cy, uint8_t R, uint8_t G, uint8_t B, uint8_t A) override;
-	virtual bool Write(uint32_t cx, uint32_t cy, uint16_t& Value) override;
-	virtual bool Write(uint32_t cx, uint32_t cy, float R, float G, float B, float A) override;
-	virtual bool Write(uint32_t cx, uint32_t cy, float Value) override;
+	virtual bool Write(uint8_t *pRow, uint32_t cx, uint8_t R, uint8_t G, uint8_t B, uint8_t A) override;
+	virtual bool Write(uint8_t *pRow, uint32_t cx, uint16_t& Value) override;
+	virtual bool Write(uint8_t *pRow, uint32_t cx, float R, float G, float B, float A) override;
+	virtual bool Write(uint8_t *pRow, uint32_t cx, float Value) override;
 	virtual void Clear(float R, float G, float B, float A) override;
 };
 
