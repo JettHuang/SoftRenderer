@@ -153,7 +153,7 @@ void FApp::SwapChain(const FSR_Buffer2D& InBuffer2D)
 {
 	const uint32_t image_width = InBuffer2D.Width();
 	const uint32_t image_height = InBuffer2D.Height();
-	const uint32_t bytes_per_row = InBuffer2D.GetBytesPerRow();
+	const uint32_t bytes_per_row = InBuffer2D.BytesPerLine();
 
 	assert(image_width == _Width && image_height == _Height);
 	assert(InBuffer2D.Format() == EPixelFormat::PIXEL_FORMAT_RGBA8888);

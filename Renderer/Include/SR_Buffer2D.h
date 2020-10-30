@@ -34,8 +34,8 @@ public:
 	virtual void Clear(float R, float G, float B, float A) {}
 
 	// get row pointer
-	virtual const uint8_t* GetRowData(uint32_t cy) const { return _buffer.data() + (cy * _w * _bytes_per_pixel); }
-	virtual uint32_t GetBytesPerRow() const { return _w* _bytes_per_pixel; };
+	const uint8_t* GetRowData(uint32_t cy) const { return _buffer.data() + (cy * _bytes_per_line); }
+	uint32_t BytesPerLine() const { return _bytes_per_line; }
 
 	// sample element
 	virtual bool Sample2DNearest(float u, float v, float& R, float& G, float& B, float& A) const;
@@ -49,13 +49,14 @@ protected:
 		return (cx >= _w || cy >= _h) ? SR_INVALID_INDEX : ((_w * cy + cx) * _bytes_per_pixel);
 	}
 
-	uint32_t BytesPerLine() const { return _bytes_per_pixel * _w; }
+	
 
 	static const float ONE_OVER_255;
 	static const float ONE_OVER_65535;
 protected:
 	uint32_t _w, _h;
 	uint32_t _bytes_per_pixel;
+	uint32_t _bytes_per_line;
 	EPixelFormat _format;
 
 	std::vector<uint8_t> _buffer;
