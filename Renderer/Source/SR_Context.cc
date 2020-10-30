@@ -41,7 +41,10 @@ FSR_Context::FSR_Context()
 	, _bEnableMSAA(false)
 	, _MSAASamplesNum(MSAA_SAMPLES)
 {
+	memset(&_pointers_shadow, 0, sizeof(_pointers_shadow));
+
 	_stats = std::make_shared<FSR_Performance>();
+	_pointers_shadow._stats = _stats.get();
 	UpdateMVP();
 }
 
@@ -53,19 +56,24 @@ FSR_Context::~FSR_Context()
 void FSR_Context::SetRenderTarget(uint32_t w, uint32_t h, uint32_t nCount, bool InbEnableMSAA)
 {
 	_rt_depth = FSR_Buffer2D_Helper::CreateBuffer2D(w, h, EPixelFormat::PIXEL_FORMAT_F32);
+	_pointers_shadow._rt_depth = _rt_depth.get();
+
 	nCount = std::min<uint32_t>(nCount, MAX_MRT_COUNT);
 	for (uint32_t i=0; i<nCount; ++i)
 	{
 		_rt_colors[i] = FSR_Buffer2D_Helper::CreateBuffer2D(w, h, EPixelFormat::PIXEL_FORMAT_RGBA8888);
+		_pointers_shadow._rt_colors[i] = _rt_colors[i].get();
 	}
 
 	_bEnableMSAA = InbEnableMSAA;
 	if (_bEnableMSAA)
 	{
 		_rt_depth_msaa = FSR_Buffer2D_Helper::CreateBuffer2D(w * _MSAASamplesNum, h, EPixelFormat::PIXEL_FORMAT_F32);
+		_pointers_shadow._rt_depth_msaa = _rt_depth_msaa.get();
 		for (uint32_t i = 0; i < nCount; ++i)
 		{
 			_rt_colors_msaa[i] = FSR_Buffer2D_Helper::CreateBuffer2D(w * _MSAASamplesNum, h, EPixelFormat::PIXEL_FORMAT_RGBA8888);
+			_pointers_shadow._rt_colors_msaa[i] = _rt_colors_msaa[i].get();
 		}
 	}
 }
@@ -73,26 +81,26 @@ void FSR_Context::SetRenderTarget(uint32_t w, uint32_t h, uint32_t nCount, bool 
 // clear render target
 void FSR_Context::ClearRenderTarget(const glm::vec4& InColor)
 {
-	if (_rt_depth)
+	if (_pointers_shadow._rt_depth)
 	{
-		_rt_depth->Clear(1.f, 1.f, 1.f, 1.f);
+		_pointers_shadow._rt_depth->Clear(1.f, 1.f, 1.f, 1.f);
 	}
 	for (uint32_t i = 0; i < MAX_MRT_COUNT; ++i)
 	{
-		if (_rt_colors[i])
+		if (_pointers_shadow._rt_colors[i])
 		{
-			_rt_colors[i]->Clear(InColor.r, InColor.g, InColor.b, InColor.a);
+			_pointers_shadow._rt_colors[i]->Clear(InColor.r, InColor.g, InColor.b, InColor.a);
 		}
 	} // end for i
 
 	if (_bEnableMSAA)
 	{
-		_rt_depth_msaa->Clear(1.f, 1.f, 1.f, 1.f);
+		_pointers_shadow._rt_depth_msaa->Clear(1.f, 1.f, 1.f, 1.f);
 		for (uint32_t i = 0; i < MAX_MRT_COUNT; ++i)
 		{
-			if (_rt_colors_msaa[i])
+			if (_pointers_shadow._rt_colors_msaa[i])
 			{
-				_rt_colors_msaa[i]->Clear(InColor.r, InColor.g, InColor.b, InColor.a);
+				_pointers_shadow._rt_colors_msaa[i]->Clear(InColor.r, InColor.g, InColor.b, InColor.a);
 			}
 		} // end for i
 	}
@@ -134,6 +142,23 @@ void FSR_Context::UpdateMVP()
 {
 	_mvp = _projection * _modelview;
 	_mvp_inv = glm::inverse(_mvp);
+}
+
+// set material
+void FSR_Context::SetMaterial(const std::shared_ptr<FSR_Material>& InMaterial) 
+{ 
+	_material = InMaterial; 
+	_pointers_shadow._material = _material.get();
+}
+
+//set pipeline
+void FSR_Context::SetShader(const std::shared_ptr<FSR_VertexShader>& InVs, const std::shared_ptr<FSR_PixelShader>& InPs)
+{
+	_vs = InVs;
+	_ps = InPs;
+
+	_pointers_shadow._vs = _vs.get();
+	_pointers_shadow._ps = _ps.get();
 }
 
 std::shared_ptr<FSR_Buffer2D> FSR_Context::GetDepthBuffer() const
@@ -182,9 +207,9 @@ void FSR_Context::ResolveMSAABuffer()
 		return;
 	}
 
-	assert(_rt_depth && _rt_depth_msaa);
-	const uint32_t w = _rt_depth->Width();
-	const uint32_t h = _rt_depth->Height();
+	assert(_pointers_shadow._rt_depth && _pointers_shadow._rt_depth_msaa);
+	const uint32_t w = _pointers_shadow._rt_depth->Width();
+	const uint32_t h = _pointers_shadow._rt_depth->Height();
 	const float factor = 1.f / _MSAASamplesNum;
 
 	for (uint32_t cy = 0; cy < h; ++cy)
@@ -194,18 +219,21 @@ void FSR_Context::ResolveMSAABuffer()
 			float sum = 0.f, d = 0.f;
 			for (int32_t i = 0; i < _MSAASamplesNum; ++i)
 			{
-				_rt_depth_msaa->Read(msaa_cx + i, cy, d);
+				_pointers_shadow._rt_depth_msaa->Read(msaa_cx + i, cy, d);
 				sum += d;
 			}
 
-			_rt_depth->Write(cx, cy, sum * factor);
+			_pointers_shadow._rt_depth->Write(cx, cy, sum * factor);
 		} // end for cx
 	} // end for cy
 
 	for (uint32_t rt = 0; rt < MAX_MRT_COUNT; ++rt)
 	{
-		if (_rt_colors[rt] && _rt_colors_msaa[rt])
+		if (_pointers_shadow._rt_colors[rt] && _pointers_shadow._rt_colors_msaa[rt])
 		{
+			FSR_Texture2D* rt_color = _pointers_shadow._rt_colors[rt];
+			FSR_Texture2D* rt_color_msaa = _pointers_shadow._rt_colors_msaa[rt];
+
 			for (uint32_t cy = 0; cy < h; ++cy)
 			{
 				for (uint32_t cx = 0, msaa_cx = 0; cx < w; ++cx, msaa_cx += _MSAASamplesNum)
@@ -214,7 +242,7 @@ void FSR_Context::ResolveMSAABuffer()
 					float r, g, b, a;
 					for (int32_t i = 0; i < _MSAASamplesNum; ++i)
 					{
-						_rt_colors_msaa[rt]->Read(msaa_cx + i, cy, r, g, b, a);
+						rt_color_msaa->Read(msaa_cx + i, cy, r, g, b, a);
 						R += r;
 						G += g;
 						B += b;
@@ -222,7 +250,7 @@ void FSR_Context::ResolveMSAABuffer()
 					} // end for i
 
 					R *= factor; G *= factor; B *= factor; A *= factor;
-					_rt_colors[rt]->Write(cx, cy, R, G, B, A);
+					rt_color->Write(cx, cy, R, G, B, A);
 				} // end for cx
 			} // end for cy
 		}
@@ -241,13 +269,13 @@ glm::vec3 FSR_Context::NDCToScreenPostion(const glm::vec3& ndc) const
 
 bool FSR_Context::DepthTestAndOverride(uint32_t cx, uint32_t cy, float InDepth) const
 {
-	if (_rt_depth)
+	if (_pointers_shadow._rt_depth)
 	{
 		float PrevDepth = 0.f;
-		_rt_depth->Read(cx, cy, PrevDepth);
+		_pointers_shadow._rt_depth->Read(cx, cy, PrevDepth);
 		if (InDepth <= PrevDepth)
 		{
-			_rt_depth->Write(cx, cy, InDepth);
+			_pointers_shadow._rt_depth->Write(cx, cy, InDepth);
 			return true;
 		}
 		else
@@ -263,7 +291,7 @@ bool FSR_Context::DepthTestAndOverrideMSAA(uint32_t cx, uint32_t cy, float InDep
 {
 	assert(_bEnableMSAA && InSampleIndex < _MSAASamplesNum);
 
-	if (_rt_depth_msaa)
+	if (_pointers_shadow._rt_depth_msaa)
 	{
 		float PrevDepth = 0.f;
 		uint32_t cx_msaa = cx * _MSAASamplesNum + InSampleIndex;
@@ -286,7 +314,7 @@ void FSR_Context::OutputAndMergeColor(int32_t cx, int32_t cy, FSRPixelShaderOutp
 {
 	for (uint32_t k = 0; k < InPixelOutput._color_cnt; ++k)
 	{
-		const std::shared_ptr<FSR_Texture2D>& rt = _rt_colors[k];
+		FSR_Texture2D* rt = _pointers_shadow._rt_colors[k];
 		if (rt)
 		{
 			const glm::vec4& color = InPixelOutput._colors[k];
@@ -301,7 +329,7 @@ void FSR_Context::OutputAndMergeColorMSAA(int32_t cx, int32_t cy, FSRPixelShader
 
 	for (uint32_t k = 0; k < InPixelOutput._color_cnt; ++k)
 	{
-		const std::shared_ptr<FSR_Texture2D>& rt = _rt_colors_msaa[k];
+		FSR_Texture2D* rt = _pointers_shadow._rt_colors_msaa[k];
 		if (rt)
 		{
 			const glm::vec4& color = InPixelOutput._colors[k];

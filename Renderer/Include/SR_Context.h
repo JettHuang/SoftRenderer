@@ -36,13 +36,9 @@ public:
 	void SetProjectionMatrix(const glm::mat4x4& InProj);
 
 	// set material
-	void SetMaterial(const std::shared_ptr<FSR_Material>& InMaterial) { _material = InMaterial; }
+	void SetMaterial(const std::shared_ptr<FSR_Material>& InMaterial);
 	//set pipeline
-	void SetShader(const std::shared_ptr<FSR_VertexShader>& InVs, const std::shared_ptr<FSR_PixelShader>& InPs) 
-	{
-		_vs = InVs;
-		_ps = InPs;
-	}
+	void SetShader(const std::shared_ptr<FSR_VertexShader>& InVs, const std::shared_ptr<FSR_PixelShader>& InPs);
 
 	// begin frame
 	void BeginFrame();
@@ -91,4 +87,19 @@ public:
 	std::shared_ptr<FSR_PixelShader>	_ps;
 
 	std::shared_ptr<FSR_Performance>	_stats;
+
+	// shadow pointer of aboves
+	struct {
+		FSR_DepthBuffer* _rt_depth;
+		FSR_Texture2D*	 _rt_colors[MAX_MRT_COUNT];
+
+		FSR_DepthBuffer*	_rt_depth_msaa;
+		FSR_Texture2D*		_rt_colors_msaa[MAX_MRT_COUNT];
+
+		FSR_Material*		_material;
+		FSR_VertexShader*	_vs;
+		FSR_PixelShader*	_ps;
+
+		FSR_Performance*	_stats;
+	} _pointers_shadow;
 };

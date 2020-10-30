@@ -232,7 +232,7 @@ static void RasterizeTriangleNormal(const FSR_Context& InContext, const FSRVerte
 {
 #if SR_ENABLE_PERFORMACE_STAT
 	FPerformanceCounter	PerfCounter;
-	const std::shared_ptr<FSR_Performance>& Stats = InContext._stats;
+	FSR_Performance* Stats = InContext._pointers_shadow._stats;
 	double elapse_microseconds = 0.0;
 #endif
 
@@ -291,6 +291,9 @@ static void RasterizeTriangleNormal(const FSR_Context& InContext, const FSRVerte
 	const int32_t Y0 = static_cast<int32_t>(floor(bbox._miny));
 	const int32_t X1 = static_cast<int32_t>(ceilf(bbox._maxx));
 	const int32_t Y1 = static_cast<int32_t>(ceilf(bbox._maxy));
+
+	FSR_PixelShader* ps = InContext._pointers_shadow._ps;
+	assert(ps);
 
 	glm::vec3 P(0);
 	FSRPixelShaderInput PixelInput;
@@ -370,7 +373,7 @@ static void RasterizeTriangleNormal(const FSR_Context& InContext, const FSRVerte
 #if SR_ENABLE_PERFORMACE_STAT
 			PerfCounter.StartPerf();
 #endif
-			InContext._ps->Process(InContext, PixelInput, PixelOutput);
+			ps->Process(InContext, PixelInput, PixelOutput);
 
 #if SR_ENABLE_PERFORMACE_STAT
 			elapse_microseconds = PerfCounter.EndPerf();
@@ -398,7 +401,7 @@ static void RasterizeTriangleMSAA4(const FSR_Context& InContext, const FSRVertex
 
 #if SR_ENABLE_PERFORMACE_STAT
 	FPerformanceCounter	PerfCounter;
-	const std::shared_ptr<FSR_Performance>& Stats = InContext._stats;
+	FSR_Performance* Stats = InContext._pointers_shadow._stats;
 	double elapse_microseconds = 0.0;
 #endif
 
@@ -458,8 +461,11 @@ static void RasterizeTriangleMSAA4(const FSR_Context& InContext, const FSRVertex
 	const int32_t X1 = static_cast<int32_t>(ceilf(bbox._maxx));
 	const int32_t Y1 = static_cast<int32_t>(ceilf(bbox._maxy));
 
+	FSR_PixelShader* ps = InContext._pointers_shadow._ps;
+	assert(ps);
+
 	static const float samples_pattern[4][2] = { { 0.25f, 0.25f }, { 0.75f, 0.25f }, { 0.75f, 0.75f }, { 0.25f, 0.75f } };
-	glm::vec3 P(0, 0, 0);
+	glm::vec3 P(0);
 	FSRPixelShaderInput PixelInput;
 	FSRPixelShaderOutput PixelOutput;
 	
@@ -559,7 +565,7 @@ static void RasterizeTriangleMSAA4(const FSR_Context& InContext, const FSRVertex
 #if SR_ENABLE_PERFORMACE_STAT
 			PerfCounter.StartPerf();
 #endif
-			InContext._ps->Process(InContext, PixelInput, PixelOutput);
+			ps->Process(InContext, PixelInput, PixelOutput);
 
 #if SR_ENABLE_PERFORMACE_STAT
 			elapse_microseconds = PerfCounter.EndPerf();
@@ -629,7 +635,7 @@ void FSR_Renderer::DrawTriangle(const FSR_Context& InContext, const FSRVertex& I
 {
 #if SR_ENABLE_PERFORMACE_STAT
 	FPerformanceCounter	PerfCounter;
-	const std::shared_ptr<FSR_Performance>& Stats = InContext._stats;
+	FSR_Performance *Stats = InContext._pointers_shadow._stats;
 	double elapse_microseconds = 0.0;
 #endif
 
@@ -639,9 +645,12 @@ void FSR_Renderer::DrawTriangle(const FSR_Context& InContext, const FSRVertex& I
 	PerfCounter.StartPerf();
 #endif
 
-	InContext._vs->Process(InContext, InA, Verts[0]);
-	InContext._vs->Process(InContext, InB, Verts[1]);
-	InContext._vs->Process(InContext, InC, Verts[2]);
+	FSR_VertexShader *vs = InContext._pointers_shadow._vs;
+	assert(vs);
+
+	vs->Process(InContext, InA, Verts[0]);
+	vs->Process(InContext, InB, Verts[1]);
+	vs->Process(InContext, InC, Verts[2]);
 
 #if SR_ENABLE_PERFORMACE_STAT
 	elapse_microseconds = PerfCounter.EndPerf();
