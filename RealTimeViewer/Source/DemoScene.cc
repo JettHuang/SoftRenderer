@@ -7,12 +7,17 @@
 #define ARR_SIZE(x) (sizeof(x) / sizeof(x[0]))
 
 
-void FDemoScene_Cubes::Init()
+void FDemoScene_Cubes::Init(FCamera &InCamera)
 {
 	_vs = std::make_shared<FSR_SimpleVertexShader>();
 	_ps = std::make_shared<FSR_SimplePixelShader>();
 
 	InitializeSceneObjects(_objects);
+
+	const glm::vec3 eye(0, 3.75, 6.5);
+	const glm::vec3 lookat(0, 0, 0);
+	const glm::vec3 up(0, 1, 0);
+	InCamera.Init(eye, up, 0, 0);
 }
 
 void FDemoScene_Cubes::DrawScene(FSR_Context& ctx, const glm::mat4x4& InViewMat, float InDeltaSeconds)

@@ -7,13 +7,14 @@
 #include <iostream>
 #include <vector>
 #include "SR_Headers.h"
+#include "Camera.h"
 
 
 // abstract base
 class FDemoScene
 {
 public:
-	virtual void Init() {}
+	virtual void Init(FCamera &InCamera) {}
 	virtual void DrawScene(FSR_Context& ctx, const glm::mat4x4& InViewMat,float InDeltaSeconds) = 0;
 };
 
@@ -22,7 +23,7 @@ public:
 class FDemoScene_Cubes : public FDemoScene
 {
 public:
-	virtual void Init() override;
+	virtual void Init(FCamera &InCamera) override;
 	virtual void DrawScene(FSR_Context& ctx, const glm::mat4x4& InViewMat, float InDeltaSeconds) override;
 
 protected:

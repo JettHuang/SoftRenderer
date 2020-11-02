@@ -18,6 +18,12 @@ public:
 		, _SDLRenderTexture(NULL)
 		, _Width(1024u)
 		, _Height(768u)
+		, _Camera()
+		, _Keydown_W(false)
+		, _Keydown_S(false)
+		, _Keydown_A(false)
+		, _Keydown_D(false)
+		, _bMousePressed(false)
 	{}
 
 	bool Initialize(const char* InCaption, int32_t InWidth, int32_t InHeight);
@@ -51,5 +57,12 @@ protected:
 
 	FSR_Context	_SR_Ctx;
 	std::shared_ptr<FDemoScene> _DemoScene;
-	glm::mat4 _viewMat;
+	FCamera		_Camera;
+
+	bool _Keydown_W;
+	bool _Keydown_S;
+	bool _Keydown_A;
+	bool _Keydown_D;
+
+	bool _bMousePressed;
 };

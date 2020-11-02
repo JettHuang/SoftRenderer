@@ -32,7 +32,7 @@ bool FApp::Initialize(const char* InCaption, int32_t InWidth, int32_t InHeight)
 	_DemoScene = std::make_shared<FDemoScene_Cubes>();
 	if (_DemoScene)
 	{
-		_DemoScene->Init();
+		_DemoScene->Init(_Camera);
 	}
 
 	_SR_Ctx.SetRenderTarget(_Width, _Height, 1, false);
@@ -43,12 +43,8 @@ bool FApp::Initialize(const char* InCaption, int32_t InWidth, int32_t InHeight)
 	// Build view & projection matrices (right-handed system)
 	const float nearPlane = 0.1f;
 	const float farPlane = 100.f;
-	const glm::vec3 eye(0, 3.75, 6.5);
-	const glm::vec3 lookat(0, 0, 0);
-	const glm::vec3 up(0, 1, 0);
 
 	const glm::mat4 proj = glm::perspective(glm::radians(60.f), static_cast<float>(_Width) / static_cast<float>(_Height), nearPlane, farPlane);
-	_viewMat = glm::lookAt(eye, lookat, up);
 	_SR_Ctx.SetProjectionMatrix(proj);
 
 	return true;
@@ -107,22 +103,52 @@ void FApp::ProcessEvent(const SDL_Event& InEvent)
 // Window Message
 void FApp::OnKeyDown(const SDL_Event& InEvent)
 {
-
+	switch (InEvent.key.keysym.sym)
+	{
+	case SDLK_w:
+		_Keydown_W = true; break;
+	case SDLK_s:
+		_Keydown_S = true; break;
+	case SDLK_a:
+		_Keydown_A = true; break;
+	case SDLK_d:
+		_Keydown_D = true; break;
+	default:
+		break;
+	}
 }
 
 void FApp::OnKeyUp(const SDL_Event& InEvent)
 {
-
+	switch (InEvent.key.keysym.sym)
+	{
+	case SDLK_w:
+		_Keydown_W = false; break;
+	case SDLK_s:
+		_Keydown_S = false; break;
+	case SDLK_a:
+		_Keydown_A = false; break;
+	case SDLK_d:
+		_Keydown_D = false; break;
+	default:
+		break;
+	}
 }
 
 void FApp::OnMouseButtonDown(const SDL_Event& InEvent)
 {
-
+	if (InEvent.button.button == 1)
+	{
+		_bMousePressed = true;
+	}
 }
 
 void FApp::OnMouseButtonUp(const SDL_Event& InEvent)
 {
-
+	if (InEvent.button.button == 1)
+	{
+		_bMousePressed = false;
+	}
 }
 	
 void FApp::OnMouseWheel(const SDL_Event& InEvent)
@@ -132,7 +158,13 @@ void FApp::OnMouseWheel(const SDL_Event& InEvent)
 
 void FApp::OnMouseMove(const SDL_Event& InEvent)
 {
+	if (_bMousePressed)
+	{
+		float dx = -InEvent.motion.xrel;
+		float dy = -InEvent.motion.yrel;
 
+		_Camera.ProcessMouseMovement(dx, dy);
+	}
 }
 
 void FApp::OnWndClosed()
@@ -219,12 +251,30 @@ void FApp::MainLoop()
 
 void FApp::Tick(float InDeltaSeconds)
 {
-	_SR_Ctx.BeginFrame();
+	// update camera
+	if (_Keydown_W)
+	{
+		_Camera.ProcessKeyboard(FORWARD, InDeltaSeconds);
+	}
+	if (_Keydown_S)
+	{
+		_Camera.ProcessKeyboard(BACKWARD, InDeltaSeconds);
+	}
+	if (_Keydown_A)
+	{
+		_Camera.ProcessKeyboard(LEFT, InDeltaSeconds);
+	}
+	if (_Keydown_D)
+	{
+		_Camera.ProcessKeyboard(RIGHT, InDeltaSeconds);
+	}
 
+	_SR_Ctx.BeginFrame();
 	_SR_Ctx.ClearRenderTarget(glm::vec4(0, 0, 0, 0));
 	if (_DemoScene)
 	{
-		_DemoScene->DrawScene(_SR_Ctx, _viewMat, InDeltaSeconds);
+		glm::mat4 viewMat = _Camera.GetViewMatrix();
+		_DemoScene->DrawScene(_SR_Ctx, viewMat, InDeltaSeconds);
 	}
 	_SR_Ctx.EndFrame();
 
