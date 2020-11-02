@@ -29,7 +29,8 @@ bool FApp::Initialize(const char* InCaption, int32_t InWidth, int32_t InHeight)
 
 	_SDLRenderTexture = SDL_CreateTexture(_SDLRenderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, _Width, _Height);
 
-	_DemoScene = std::make_shared<FDemoScene_Cubes>();
+	// _DemoScene = std::make_shared<FDemoScene_Cubes>();
+	_DemoScene = std::make_shared<FDemoScene_Meshes>();
 	if (_DemoScene)
 	{
 		_DemoScene->Init(_Camera);
@@ -41,8 +42,8 @@ bool FApp::Initialize(const char* InCaption, int32_t InWidth, int32_t InHeight)
 
 	// TO REMOVE FROM HERE
 	// Build view & projection matrices (right-handed system)
-	const float nearPlane = 0.1f;
-	const float farPlane = 100.f;
+	float nearPlane = 0.125f;
+	float farPlane = 5000.f;
 
 	const glm::mat4 proj = glm::perspective(glm::radians(60.f), static_cast<float>(_Width) / static_cast<float>(_Height), nearPlane, farPlane);
 	_SR_Ctx.SetProjectionMatrix(proj);

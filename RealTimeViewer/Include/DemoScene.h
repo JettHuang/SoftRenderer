@@ -35,3 +35,17 @@ protected:
 	std::vector<glm::mat4> _objects;
 	std::vector<float>	   _object_rots;
 };
+
+// mesh model
+class FDemoScene_Meshes : public FDemoScene
+{
+public:
+	virtual void Init(FCamera& InCamera) override;
+	virtual void DrawScene(FSR_Context& ctx, const glm::mat4x4& InViewMat, float InDeltaSeconds) override;
+
+protected:
+	std::shared_ptr<FSR_VertexShader> _vs;
+	std::shared_ptr<FSR_PixelShader> _ps;
+
+	std::shared_ptr<FSR_Mesh>	_SceneMesh;
+};

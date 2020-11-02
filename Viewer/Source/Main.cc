@@ -563,7 +563,7 @@ void Example_Teapot_Scene()
 int main()
 {
 	//Example_SingleTriangle();
-	Example_Multi_Cubes();
-	//Example_Mesh_Scene();
+	// Example_Multi_Cubes();
+	Example_Mesh_Scene();
 	//Example_Teapot_Scene();
 }

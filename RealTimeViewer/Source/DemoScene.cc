@@ -128,3 +128,36 @@ void FDemoScene_Cubes::InitializeSceneObjects(std::vector<glm::mat4>& objects)
 	_object_rots.push_back(60.f);
 }
 
+//////////////////////////////////////////////////////////////////////////
+
+void FDemoScene_Meshes::Init(FCamera& InCamera)
+{
+	_vs = std::make_shared<FSR_SimpleMeshVertexShader>();
+	_ps = std::make_shared<FSR_SimpleMeshPixelShader>();
+
+	// load mesh
+	std::cerr << "Loading mesh .... " << std::endl;
+	_SceneMesh = std::make_shared<FSR_Mesh>();
+	if (!_SceneMesh->LoadFromObjFile("./Assets/sponza.obj", "./Assets/"))
+	{
+		std::cerr << "Load .obj scene failed." << std::endl;
+	}
+	std::cerr << "Loading mesh Finished.... " << std::endl;
+
+	glm::vec3 eye(0, -8.5, -5);
+	glm::vec3 lookat(20, 5, 1);
+	glm::vec3 up(0, 1, 0);
+
+	InCamera.Init(eye, up, 0, 0);
+}
+
+void FDemoScene_Meshes::DrawScene(FSR_Context& ctx, const glm::mat4x4& InViewMat, float InDeltaSeconds)
+{
+	if (_SceneMesh)
+	{
+		ctx.SetShader(_vs, _ps);
+
+		ctx.SetModelViewMatrix(InViewMat);
+		FSR_Renderer::DrawMesh(ctx, *_SceneMesh);
+	}
+}
