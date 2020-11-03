@@ -38,6 +38,7 @@ public:
 	static const VectorRegister FloatMinusOne;
 	static const VectorRegister FloatOneOver255;
 	static const VectorRegister Float255;
+	static const VectorRegister FloatHalf;
 
 	static const VectorRegisterInt IntAllMask;
 	static const VectorRegisterInt IntOne;

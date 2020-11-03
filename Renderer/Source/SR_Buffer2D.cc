@@ -32,9 +32,10 @@ bool FSR_Buffer2D::Sample2DNearest(float u, float v, float RGBA[]) const
 	u = u - floor(u);
 	v = v - floor(v);
 
-	uint32_t cx = glm::clamp<int32_t>(int32_t(_w * u), 0, _w - 1);
-	uint32_t cy = glm::clamp<int32_t>(int32_t(_h * v), 0, _h - 1);
-
+	uint32_t cx = uint32_t(_w * u);
+	uint32_t cy = uint32_t(_h * v);
+	
+	assert(cx < _w&& cy < _h);
 	return Read(cx, cy, RGBA);
 }
 
@@ -340,14 +341,11 @@ bool FSR_Buffer2D_RGB888::Read(const uint8_t *pRow, uint32_t cx, float RGBA[]) c
 	assert(_bytes_per_pixel == 3);
 
 	const uint8_t* pData = pRow + ((cx << 1) + cx);
-	RGBA[0] = pData[0];
-	RGBA[1] = pData[1];
-	RGBA[2] = pData[2];
+	uint8_t rgba[4] = { pData[0], pData[1], pData[2], 255 };
 
-	RGBA[0] *= ONE_OVER_255;
-	RGBA[1] *= ONE_OVER_255;
-	RGBA[2] *= ONE_OVER_255;
-	RGBA[3] = 1.f;
+	VectorRegister clr0 = VectorLoadByte4(rgba);
+	VectorRegister clr1 = VectorMultiply(clr0, VectorRegsiterConstants::FloatOneOver255);
+	VectorStore(clr1, RGBA);
 	return true;
 }
 

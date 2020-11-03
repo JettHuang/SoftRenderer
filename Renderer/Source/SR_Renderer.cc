@@ -156,7 +156,14 @@ static bool intersect(const FSR_Rectangle& InA, const FSR_Rectangle& InB, FSR_Re
 // edge function
 inline float EdgeFunction(const glm::vec3& A, const glm::vec3& B, const glm::vec3& P)
 {
+#if 0
 	return ((P.x - A.x) * (B.y - A.y) - (P.y - A.y) * (B.x - A.x));
+#else
+	VectorRegister AB = MakeVectorRegister(B.x - A.x, B.y - A.y, 0.f, 0.f);
+	VectorRegister AP = MakeVectorRegister(P.x - A.x, P.y - A.y, 0.f, 0.f);
+	VectorRegister Result = VectorCross(AP, AB);
+	return VectorGetComponent(Result, 2);
+#endif
 }
 
 inline FSR_Rectangle BoundingboxOfTriangle(const glm::vec3& V0, const glm::vec3& V1, const glm::vec3& V2)
@@ -191,11 +198,22 @@ inline FSR_Rectangle BoundingboxOfTriangle(const glm::vec3& V0, const glm::vec3&
 
 inline void DivideVertexAttributesByW(const FSRVertexAttributes& VInput, float InOneOverW, FSRVertexAttributes& PInput)
 {
+#if 0
 	for (uint32_t k = 0; k < VInput._count; ++k)
 	{
 		PInput._members[k] = VInput._members[k] * InOneOverW;
 	}
 	PInput._count = VInput._count;
+#else
+	VectorRegister regOneOverW = VectorSetFloat1(InOneOverW);
+	for (uint32_t k = 0; k < VInput._count; ++k)
+	{
+		VectorRegister Value = VectorLoad(&(VInput._members[k].x));
+		VectorRegister Result = VectorMultiply(Value, regOneOverW);
+		VectorStore(Result, &(PInput._members[k].x));
+	}
+	PInput._count = VInput._count;
+#endif
 }
 
 inline void InterpolateVertexAttributes(const FSRVertexAttributes& V0, float w0,
@@ -213,6 +231,10 @@ inline void InterpolateVertexAttributes(const FSRVertexAttributes& V0, float w0,
 	}
 #else
 
+	VectorRegister RW012 = VectorSetFloat3(w0, w1, w2);
+	VectorRegister RW = VectorSetFloat1(W);
+	VectorRegister RWW = VectorMultiply(RW012, RW);
+
 	for (uint32_t k = 0; k < V0._count; ++k)
 	{
 		const glm::vec4& a = V0._members[k];
@@ -220,10 +242,26 @@ inline void InterpolateVertexAttributes(const FSRVertexAttributes& V0, float w0,
 		const glm::vec4& c = V2._members[k];
 		glm::vec4& o = Output._members[k];
 
-		o.x = (a.x * w0 + b.x * w1 + c.x * w2) * W;
-		o.y = (a.y * w0 + b.y * w1 + c.y * w2) * W;
-		o.z = (a.z * w0 + b.z * w1 + c.z * w2) * W;
-		o.w = (a.w * w0 + b.w * w1 + c.w * w2) * W;
+		/*
+			o.x = (a.x * w0 + b.x * w1 + c.x * w2) * W;
+			o.y = (a.y * w0 + b.y * w1 + c.y * w2) * W;
+			o.z = (a.z * w0 + b.z * w1 + c.z * w2) * W;
+			o.w = (a.w * w0 + b.w * w1 + c.w * w2) * W;
+		*/
+		VectorRegister RX = VectorSetFloat3(a.x, b.x, c.x);
+		VectorRegister RY = VectorSetFloat3(a.y, b.y, c.y);
+		VectorRegister RZ = VectorSetFloat3(a.z, b.z, c.z);
+		VectorRegister RW = VectorSetFloat3(a.w, b.w, c.w);
+
+		VectorRegister RXdot = VectorDot3(RX, RWW);
+		VectorRegister RYdot = VectorDot3(RY, RWW);
+		VectorRegister RZdot = VectorDot3(RZ, RWW);
+		VectorRegister RWdot = VectorDot3(RW, RWW);
+
+		o.x = VectorGetComponent(RXdot, 0);
+		o.y = VectorGetComponent(RYdot, 0);
+		o.z = VectorGetComponent(RZdot, 0);
+		o.w = VectorGetComponent(RWdot, 0);
 	}
 #endif
 }
@@ -240,14 +278,24 @@ static void RasterizeTriangleNormal(const FSR_Context& InContext, const FSRVerte
 	FSR_RasterizedVert screen[3];
 
 	// perspective divide
-	for (uint32_t i = 0; i < 3; ++i)
+	for (int32_t k=0; k<3; ++k)
 	{
-		float inv_w = 1.f / ABC[i]->_vertex.w;
-		screen[i]._inv_w = inv_w;
-		screen[i]._ndc_pos.x = ABC[i]->_vertex.x * inv_w;
-		screen[i]._ndc_pos.y = ABC[i]->_vertex.y * inv_w;
-		screen[i]._ndc_pos.z = ABC[i]->_vertex.z * inv_w;
-		screen[i]._screen_pos = InContext.NDCToScreenPostion(screen[i]._ndc_pos);
+		const glm::vec4& vertex = ABC[k]->_vertex;
+		FSR_RasterizedVert& srv = screen[k];
+
+		float inv_w = 1.f / vertex.w;
+		srv._inv_w = inv_w;
+#if 0
+		srv._ndc_pos.x = vertex.x * inv_w;
+		srv._ndc_pos.y = vertex.y * inv_w;
+		srv._ndc_pos.z = vertex.z * inv_w;
+#else
+		VectorRegister R0 = VectorLoadFloat3_W0(&vertex.x);
+		VectorRegister R1 = VectorSetFloat1(inv_w);
+		VectorRegister R2 = VectorMultiply(R0, R1);
+		VectorStoreFloat3(R2, &(srv._ndc_pos.x));
+#endif
+		srv._screen_pos = InContext.NDCToScreenPostion(srv._ndc_pos);
 	}
 
 	uint32_t iv0 = 0, iv1 = 1, iv2 = 2;
@@ -313,7 +361,7 @@ static void RasterizeTriangleNormal(const FSR_Context& InContext, const FSRVerte
 	float flt_X0 = X0, flt_Y0 = Y0;
 	float flt_cx, flt_cy;
 	int32_t cx, cy;
-	for (cy = Y0, flt_cy = flt_Y0; cy < Y1; ++cy, flt_cy += 1.f)
+	for (cy = Y0, flt_cy = flt_Y0 + 0.5f; cy < Y1; ++cy, flt_cy += 1.f)
 	{
 		pDepthBufferRow = InContext._pointers_shadow._rt_depth->GetRowData(cy);
 		for (uint32_t k=0; k < PixelOutput._color_cnt; ++k)
@@ -322,10 +370,10 @@ static void RasterizeTriangleNormal(const FSR_Context& InContext, const FSRVerte
 			pColorBufferRows[k] = InContext._pointers_shadow._rt_colors[k]->GetRowData(cy);;
 		}
 
-		for (cx = X0, flt_cx = flt_X0; cx < X1; ++cx, flt_cx += 1.f)
+		for (cx = X0, flt_cx = flt_X0 + 0.5f; cx < X1; ++cx, flt_cx += 1.f)
 		{
-			P.x = flt_cx + 0.5f;
-			P.y = flt_cy + 0.5f;
+			P.x = flt_cx;
+			P.y = flt_cy;
 
 			float E12 = EdgeFunction(SV1._screen_pos, SV2._screen_pos, P);
 			float E20 = EdgeFunction(SV2._screen_pos, SV0._screen_pos, P);

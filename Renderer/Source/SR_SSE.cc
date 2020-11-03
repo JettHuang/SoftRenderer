@@ -16,6 +16,7 @@ const VectorRegister VectorRegsiterConstants::SignMask = MakeVectorRegister((uin
 const VectorRegister VectorRegsiterConstants::FloatMinusOne = MakeVectorRegister(-1.0f, -1.0f, -1.0f, -1.0f);
 const VectorRegister VectorRegsiterConstants::FloatOneOver255 = MakeVectorRegister(1.f/255.f, 1.f / 255.f, 1.f / 255.f, 1.f / 255.f);
 const VectorRegister VectorRegsiterConstants::Float255 = MakeVectorRegister(255.f, 255.f, 255.f, 255.f);
+const VectorRegister VectorRegsiterConstants::FloatHalf = MakeVectorRegister(0.5f, 0.5f, 0.5f, 0.5f);
 
 const VectorRegisterInt VectorRegsiterConstants::IntAllMask = MakeVectorRegisterInt(0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF);
 const VectorRegisterInt VectorRegsiterConstants::IntOne = MakeVectorRegisterInt(1, 1, 1, 1);

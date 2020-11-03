@@ -3,6 +3,7 @@
 //
 
 #include "SR_Context.h"
+#include "SR_SSE.h"
 
 
 struct FPixelFormatDesc 
@@ -259,16 +260,6 @@ void FSR_Context::ResolveMSAABuffer()
 			} // end for cy
 		}
 	} // end for rt
-}
-
-glm::vec3 FSR_Context::NDCToScreenPostion(const glm::vec3& ndc) const
-{
-	glm::vec3 screen_pos;
-
-	screen_pos.x = glm::mix(_viewport_rect._minx, _viewport_rect._maxx, (ndc.x + 1.0f) * 0.5f);
-	screen_pos.y = glm::mix(_viewport_rect._miny, _viewport_rect._maxy, (ndc.y + 1.0f) * 0.5f);
-	screen_pos.z = (ndc.z + 1.0f) * 0.5f;
-	return screen_pos;
 }
 
 bool FSR_Context::DepthTestAndOverride(uint32_t cx, uint32_t cy, float InDepth) const
