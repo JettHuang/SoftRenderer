@@ -162,7 +162,7 @@ void FApp::OnMouseMove(const SDL_Event& InEvent)
 	if (_bMousePressed)
 	{
 		float dx = -InEvent.motion.xrel;
-		float dy = -InEvent.motion.yrel;
+		float dy = InEvent.motion.yrel;
 
 		_Camera.ProcessMouseMovement(dx, dy);
 	}
@@ -178,7 +178,7 @@ void FApp::OnWndClosed()
 
 void FApp::Present()
 {
-	SDL_RenderCopy(_SDLRenderer, _SDLRenderTexture, nullptr, nullptr);
+	SDL_RenderCopyEx(_SDLRenderer, _SDLRenderTexture, nullptr, nullptr, 0, nullptr, SDL_RendererFlip::SDL_FLIP_VERTICAL);
 	SDL_RenderPresent(_SDLRenderer);
 }
 
@@ -202,7 +202,7 @@ void FApp::SwapChain(const FSR_Buffer2D& InBuffer2D)
 	}
 	else
 	{
-		for (int32_t j = image_height - 1; j >= 0; --j, pBuffer += pitch)
+		for (uint32_t j = 0; j < image_height; ++j, pBuffer += pitch)
 		{
 			const uint8_t* src = InBuffer2D.GetRowData(j);
 			uint8_t* dst = pBuffer;

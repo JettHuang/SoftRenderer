@@ -33,11 +33,11 @@ void FSR_SimpleMeshVertexShader::Process(const FSR_Context& InContext, const FSR
 void FSR_SimpleMeshPixelShader::Process(const FSR_Context& InContext, const FSRPixelShaderInput& Input, FSRPixelShaderOutput& Output)
 {
 #if 0
-	glm::vec3 n = Input._attributes._members[0] * glm::vec3(0.5) + glm::vec3(0.5); // transform normal values [-1, 1] -> [0, 1] to visualize better
-	Output._colors[0] = glm::vec4(n, 1.f);
+	glm::vec4 n = Input._attributes._members[0] * glm::vec4(0.5) + glm::vec4(0.5); // transform normal values [-1, 1] -> [0, 1] to visualize better
+	Output._colors[0] = n;
 	Output._color_cnt = 1;
 #else
-	const glm::vec3 &uv = Input._attributes._members[1];
+	const glm::vec4 &uv = Input._attributes._members[1];
 	float RGBA[4];
 	if (InContext._material && InContext._material->_diffuse_tex)
 	{

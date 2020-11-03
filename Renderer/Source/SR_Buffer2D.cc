@@ -7,6 +7,9 @@
 #include "SR_Buffer2D.h"
 #include "SR_SSE.h"
 
+#define SVPNG_LINKAGE	static
+#include "svpng.inc"
+
 
 const float FSR_Buffer2D::ONE_OVER_255 = (1.f / 255.f);
 const float FSR_Buffer2D::ONE_OVER_65535 = (1.f / 65535.f);
@@ -874,7 +877,49 @@ std::shared_ptr<FSR_Buffer2D> FSR_Buffer2D_Helper::LoadImageFile(const char* InF
 	return Buffer2d;
 }
 
-bool FSR_Buffer2D_Helper::SaveImageFile(const std::shared_ptr<FSR_Buffer2D> InTexture, const char* InFileName)
+bool FSR_Buffer2D_Helper::SaveImageFile(const std::shared_ptr<FSR_Buffer2D> InBuffer2D, const char* InFileName)
 {
-	return false;
+	int32_t image_width, image_height;
+
+	if (!InBuffer2D)
+	{
+		return false;
+	}
+
+	image_width = InBuffer2D->Width();
+	image_height = InBuffer2D->Height();
+	if (image_width <= 0 || image_height <= 0)
+	{
+		return false;
+	}
+
+	unsigned char* rgb = new unsigned char[image_width * image_height * 3];
+	if (!rgb) {
+		return false;
+	}
+
+	unsigned char* ptr = rgb;
+	for (int32_t j = image_height - 1; j >= 0; --j)
+	{
+		for (int32_t i = 0; i < image_width; ++i)
+		{
+			float RGBA[4];
+			InBuffer2D->Read(i, j, RGBA);
+
+			// Write the translated [0,255] value of each color component.
+			*ptr++ = static_cast<int>(255 * RGBA[0]);
+			*ptr++ = static_cast<int>(255 * RGBA[1]);
+			*ptr++ = static_cast<int>(255 * RGBA[2]);
+		}
+	} // end j
+
+	FILE* fp = fopen(InFileName, "wb");
+	if (fp)
+	{
+		svpng(fp, image_width, image_height, rgb, 0);
+		fclose(fp);
+	}
+
+	delete[] rgb;
+	return true;
 }

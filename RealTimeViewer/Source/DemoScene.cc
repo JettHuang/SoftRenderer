@@ -148,7 +148,7 @@ void FDemoScene_Meshes::Init(FCamera& InCamera)
 	glm::vec3 lookat(20, 5, 1);
 	glm::vec3 up(0, 1, 0);
 
-	InCamera.Init(eye, up, 0, 0);
+	InCamera.Init(eye, up, -90, 0);
 }
 
 void FDemoScene_Meshes::DrawScene(FSR_Context& ctx, const glm::mat4x4& InViewMat, float InDeltaSeconds)

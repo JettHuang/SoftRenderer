@@ -215,10 +215,10 @@ inline void InterpolateVertexAttributes(const FSRVertexAttributes& V0, float w0,
 
 	for (uint32_t k = 0; k < V0._count; ++k)
 	{
-		const glm::vec4& a = V0._members[0];
-		const glm::vec4& b = V1._members[0];
-		const glm::vec4& c = V2._members[0];
-		glm::vec4& o = Output._members[0];
+		const glm::vec4& a = V0._members[k];
+		const glm::vec4& b = V1._members[k];
+		const glm::vec4& c = V2._members[k];
+		glm::vec4& o = Output._members[k];
 
 		o.x = (a.x * w0 + b.x * w1 + c.x * w2) * W;
 		o.y = (a.y * w0 + b.y * w1 + c.y * w2) * W;
