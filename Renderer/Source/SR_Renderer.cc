@@ -154,16 +154,21 @@ static bool intersect(const FSR_Rectangle& InA, const FSR_Rectangle& InB, FSR_Re
 }
 
 // edge function
+// NOTE: the following is increment of edge function
+// 1. A, B, P
+// EdgeFunction = ((P.x - A.x) * (B.y - A.y) - (P.y - A.y) * (B.x - A.x))
+// 2. A, B, P1(P.x+1, P.y)
+// EdgeFunctionPx = ((P.x + 1.0 - A.x) * (B.y - A.y) - (P.y - A.y) * (B.x - A.x))
+//                = ((P.x - A.x) * (B.y - A.y) - (P.y - A.y) * (B.x - A.x)) + (B.y - A.y)
+//				  = EdgeFunction + (B.y - A.y)
+// 3. A, B, P1(P.x, P.y+1)
+// EdgeFunctionPy = ((P.x - A.x) * (B.y - A.y) - (P.y + 1.0 - A.y) * (B.x - A.x))
+//                = ((P.x - A.x) * (B.y - A.y) - (P.y - A.y) * (B.x - A.x)) + (B.y - A.y)
+//				  = EdgeFunction - (B.x - A.x)
+//
 inline float EdgeFunction(const glm::vec3& A, const glm::vec3& B, const glm::vec3& P)
 {
-#if 0
 	return ((P.x - A.x) * (B.y - A.y) - (P.y - A.y) * (B.x - A.x));
-#else
-	VectorRegister AB = MakeVectorRegister(B.x - A.x, B.y - A.y, 0.f, 0.f);
-	VectorRegister AP = MakeVectorRegister(P.x - A.x, P.y - A.y, 0.f, 0.f);
-	VectorRegister Result = VectorCross(AP, AB);
-	return VectorGetComponent(Result, 2);
-#endif
 }
 
 inline FSR_Rectangle BoundingboxOfTriangle(const glm::vec3& V0, const glm::vec3& V1, const glm::vec3& V2)
@@ -343,7 +348,6 @@ static void RasterizeTriangleNormal(const FSR_Context& InContext, const FSRVerte
 	FSR_PixelShader* ps = InContext._pointers_shadow._ps;
 	assert(ps);
 
-	glm::vec3 P(0);
 	FSRPixelShaderInput PixelInput;
 	FSRPixelShaderOutput PixelOutput;
 
@@ -358,10 +362,18 @@ static void RasterizeTriangleNormal(const FSR_Context& InContext, const FSRVerte
 
 	assert(InContext._pointers_shadow._rt_depth);
 
-	float flt_X0 = X0, flt_Y0 = Y0;
-	float flt_cx, flt_cy;
-	int32_t cx, cy;
-	for (cy = Y0, flt_cy = flt_Y0 + 0.5f; cy < Y1; ++cy, flt_cy += 1.f)
+	const glm::vec3 P(X0 + 0.5f, Y0 + 0.5f, 0.f);
+	const float PE12 = EdgeFunction(SV1._screen_pos, SV2._screen_pos, P);
+	const float PE20 = EdgeFunction(SV2._screen_pos, SV0._screen_pos, P);
+	const float PE01 = EdgeFunction(SV0._screen_pos, SV1._screen_pos, P);
+	const glm::vec2 V12(SV2._screen_pos.x - SV1._screen_pos.x, SV2._screen_pos.y - SV1._screen_pos.y);
+	const glm::vec2 V20(SV0._screen_pos.x - SV2._screen_pos.x, SV0._screen_pos.y - SV2._screen_pos.y);
+	const glm::vec2 V01(SV1._screen_pos.x - SV0._screen_pos.x, SV1._screen_pos.y - SV0._screen_pos.y);
+
+	float E12Y = PE12;
+	float E20Y = PE20;
+	float E01Y = PE01;
+	for (int32_t cy = Y0; cy < Y1; ++cy, E12Y-=V12.x, E20Y-=V20.x, E01Y-=V01.x)
 	{
 		pDepthBufferRow = InContext._pointers_shadow._rt_depth->GetRowData(cy);
 		for (uint32_t k=0; k < PixelOutput._color_cnt; ++k)
@@ -370,14 +382,11 @@ static void RasterizeTriangleNormal(const FSR_Context& InContext, const FSRVerte
 			pColorBufferRows[k] = InContext._pointers_shadow._rt_colors[k]->GetRowData(cy);;
 		}
 
-		for (cx = X0, flt_cx = flt_X0 + 0.5f; cx < X1; ++cx, flt_cx += 1.f)
+		float E12 = E12Y;
+		float E20 = E20Y;
+		float E01 = E01Y;
+		for (int32_t cx = X0; cx < X1; ++cx, E12+=V12.y, E20+=V20.y, E01+=V01.y)
 		{
-			P.x = flt_cx;
-			P.y = flt_cy;
-
-			float E12 = EdgeFunction(SV1._screen_pos, SV2._screen_pos, P);
-			float E20 = EdgeFunction(SV2._screen_pos, SV0._screen_pos, P);
-			float E01 = EdgeFunction(SV0._screen_pos, SV1._screen_pos, P);
 			if (E12 < 0.f || E20 < 0.f || E01 < 0.f)
 			{
 				// outside of the triangle
