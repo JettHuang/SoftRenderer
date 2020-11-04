@@ -366,14 +366,14 @@ static void RasterizeTriangleNormal(const FSR_Context& InContext, const FSRVerte
 	const float PE12 = EdgeFunction(SV1._screen_pos, SV2._screen_pos, P);
 	const float PE20 = EdgeFunction(SV2._screen_pos, SV0._screen_pos, P);
 	const float PE01 = EdgeFunction(SV0._screen_pos, SV1._screen_pos, P);
-	const glm::vec2 V12(SV2._screen_pos.x - SV1._screen_pos.x, SV2._screen_pos.y - SV1._screen_pos.y);
-	const glm::vec2 V20(SV0._screen_pos.x - SV2._screen_pos.x, SV0._screen_pos.y - SV2._screen_pos.y);
-	const glm::vec2 V01(SV1._screen_pos.x - SV0._screen_pos.x, SV1._screen_pos.y - SV0._screen_pos.y);
+	const glm::vec3 edge12 = SV2._screen_pos - SV1._screen_pos;
+	const glm::vec3 edge20 = SV0._screen_pos - SV2._screen_pos;
+	const glm::vec3 edge01 = SV1._screen_pos - SV0._screen_pos;
 
-	float E12Y = PE12;
-	float E20Y = PE20;
-	float E01Y = PE01;
-	for (int32_t cy = Y0; cy < Y1; ++cy, E12Y-=V12.x, E20Y-=V20.x, E01Y-=V01.x)
+	VectorRegister RegEY = MakeVectorRegister(PE12, PE20, PE01, 1.f);
+	VectorRegister RegVX = MakeVectorRegister(edge12.x, edge20.x, edge01.x, 0.f);
+	VectorRegister RegVY = MakeVectorRegister(edge12.y, edge20.y, edge01.y, 0.f);
+	for (int32_t cy = Y0; cy < Y1; ++cy, RegEY = VectorSubtract(RegEY, RegVX))
 	{
 		pDepthBufferRow = InContext._pointers_shadow._rt_depth->GetRowData(cy);
 		for (uint32_t k=0; k < PixelOutput._color_cnt; ++k)
@@ -382,20 +382,18 @@ static void RasterizeTriangleNormal(const FSR_Context& InContext, const FSRVerte
 			pColorBufferRows[k] = InContext._pointers_shadow._rt_colors[k]->GetRowData(cy);;
 		}
 
-		float E12 = E12Y;
-		float E20 = E20Y;
-		float E01 = E01Y;
-		for (int32_t cx = X0; cx < X1; ++cx, E12+=V12.y, E20+=V20.y, E01+=V01.y)
+		VectorRegister RegEX = RegEY;
+		for (int32_t cx = X0; cx < X1; ++cx, RegEX = VectorAdd(RegEX, RegVY))
 		{
-			if (E12 < 0.f || E20 < 0.f || E01 < 0.f)
+			if (VectorAnyGreaterThan(VectorSetFloat1(0.f), RegEX)) // equal if (E12 < 0.f || E20 < 0.f || E01 < 0.f)
 			{
 				// outside of the triangle
 				continue;
 			}
 
-			glm::vec3 edge12 = SV2._screen_pos - SV1._screen_pos;
-			glm::vec3 edge20 = SV0._screen_pos - SV2._screen_pos;
-			glm::vec3 edge01 = SV1._screen_pos - SV0._screen_pos;
+			float E12 = VectorGetComponent(RegEX, 0);
+			float E20 = VectorGetComponent(RegEX, 1);
+			float E01 = VectorGetComponent(RegEX, 2);
 
 			// top-left rule:
 			// the pixel or point is considered to overlap a triangle if it is either inside the triangle or 
@@ -478,7 +476,7 @@ static void RasterizeTriangleNormal(const FSR_Context& InContext, const FSRVerte
 			Stats->_color_total_microseconds += elapse_microseconds;
 #endif
 		} //end cx
-	} // end cy
+} // end cy
 }
 
 static void RasterizeTriangleMSAA4(const FSR_Context& InContext, const FSRVertexShaderOutput& A, const FSRVertexShaderOutput& B, const FSRVertexShaderOutput& C)
