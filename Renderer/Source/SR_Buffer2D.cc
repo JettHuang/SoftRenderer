@@ -32,8 +32,8 @@ bool FSR_Buffer2D::Sample2DNearest(float u, float v, float RGBA[]) const
 	u = u - floor(u);
 	v = v - floor(v);
 
-	uint32_t cx = uint32_t(_w * u);
-	uint32_t cy = uint32_t(_h * v);
+	uint32_t cx = uint32_t((_w - 1) * u);
+	uint32_t cy = uint32_t((_h - 1) * v);
 	
 	assert(cx < _w&& cy < _h);
 	return Read(cx, cy, RGBA);
