@@ -12,6 +12,7 @@
 
 
 #define MSAA_SAMPLES		4
+#define MAX_CLIP_VTXCOUNT	9
 
 // render context
 class FSR_Context
@@ -84,7 +85,10 @@ public:
 	glm::mat4x4 _mvp_inv;
 
 	EFrontFace	_front_face;
-	
+	// clip vertex buffer
+	FSRVertexShaderOutput	_clip_vtx_buffer0[MAX_CLIP_VTXCOUNT];
+	FSRVertexShaderOutput	_clip_vtx_buffer1[MAX_CLIP_VTXCOUNT];
+
 	std::shared_ptr<FSR_DepthBuffer>	_rt_depth;
 	std::shared_ptr<FSR_Texture2D>		_rt_colors[MAX_MRT_COUNT];
 

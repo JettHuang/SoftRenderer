@@ -15,11 +15,11 @@ void FSR_SimpleVertexShader::Process(const FSR_Context& InContext, const FSRVert
 
 void FSR_SimplePixelShader::Process(const FSR_Context& InContext, const FSRPixelShaderInput& Input, FSRPixelShaderOutput& Output)
 {
-	const glm::vec3 &V3 = Input._attributes._members[0];
+	const glm::vec3 &V4 = Input._attributes._members[0];
 	glm::vec4& color = Output._colors[0];
-	color.r = V3.x;
-	color.g = V3.y;
-	color.b = V3.z;
+	color.r = V4.x;
+	color.g = V4.y;
+	color.b = V4.z;
 	color.a = 1.f;
 }
 
@@ -42,6 +42,7 @@ void FSR_SimpleMeshPixelShader::Process(const FSR_Context& InContext, const FSRP
 	if (InContext._material && InContext._material->_diffuse_tex)
 	{
 		InContext._material->_diffuse_tex->Sample2DNearest(uv.x, uv.y, RGBA);
+		//memcpy(RGBA, &(Input._attributes._members[0].r), sizeof(RGBA));
 	}
 	memcpy(&Output._colors[0].r, RGBA, sizeof(RGBA));
 #endif

@@ -7,6 +7,46 @@
 #define ARR_SIZE(x) (sizeof(x) / sizeof(x[0]))
 
 
+void FDemoScene_Quad::Init(FCamera& InCamera)
+{
+	_vs = std::make_shared<FSR_SimpleVertexShader>();
+	_ps = std::make_shared<FSR_SimplePixelShader>();
+
+	const glm::vec3 eye(0, 0, 10);
+	const glm::vec3 lookat(0, 0, 0);
+	const glm::vec3 up(0, 1, 0);
+	InCamera.Init(eye, up, 0, 0);
+}
+
+void FDemoScene_Quad::DrawScene(FSR_Context& ctx, const glm::mat4x4& InViewMat, float InDeltaSeconds)
+{
+	ctx.SetShader(_vs, _ps);
+
+	FSRVertex v0, v1, v2, v3;
+
+	v0._vertex = glm::vec4(10, -10, 1.0, 1.0);
+	v0._attributes._members[0] = glm::vec4(1.0, 0.0, 0.0, 1.f);
+	v0._attributes._count = 1;
+
+	v1._vertex = glm::vec4(-10, 10, 1.0, 1.0);
+	v1._attributes._members[0] = glm::vec4(0.0, 1.0, 0.0, 1.f);
+	v1._attributes._count = 1;
+
+	v2._vertex = glm::vec4(10, 10, 1.0, 1.f);
+	v2._attributes._members[0] = glm::vec4(0.0, 0.0, 1.0, 1.f);
+	v2._attributes._count = 1;
+
+	v3._vertex = glm::vec4(-10, -10, 1.0, 1.f);
+	v3._attributes._members[0] = glm::vec4(0.0, 1.0, 0.0, 1.f);
+	v3._attributes._count = 1;
+
+	ctx.SetCullFaceMode(EFrontFace::FACE_CW);
+	ctx.SetModelViewMatrix(InViewMat);
+	FSR_Renderer::DrawTriangle(ctx, v0, v1, v2);
+	FSR_Renderer::DrawTriangle(ctx, v0, v3, v1);
+}
+
+//////////////////////////////////////////////////////////////////////////
 void FDemoScene_Cubes::Init(FCamera &InCamera)
 {
 	_vs = std::make_shared<FSR_SimpleVertexShader>();

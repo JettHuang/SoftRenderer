@@ -376,14 +376,13 @@ void Example_Mesh_Scene()
 	// Build view & projection matrices (right-handed sysem)
 	float nearPlane = 0.125f;
 	float farPlane = 5000.f;
-	glm::vec3 eye(0, -8.5, -5);
-	glm::vec3 lookat(20, 5, 1);
+	glm::vec3 eye(-536.384094, 243.321686, 386.094238);
+	glm::vec3 lookat(eye + glm::vec3(0.858588457, -0.511293113, -0.0374868400)); // (20, 5, 1);
 	glm::vec3 up(0, 1, 0);
 
 	const glm::mat4 view = glm::lookAt(eye, lookat, up);
-	const glm::mat4 modelview = glm::rotate(view, glm::radians(-30.f), glm::vec3(0, 1, 0));
 	const glm::mat4 proj = glm::perspective(glm::radians(60.f), static_cast<float>(kWidth) / static_cast<float>(kHeight), nearPlane, farPlane);
-	ctx.SetModelViewMatrix(modelview);
+	ctx.SetModelViewMatrix(view);
 	ctx.SetProjectionMatrix(proj);
 
 	// load mesh

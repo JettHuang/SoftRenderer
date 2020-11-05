@@ -75,7 +75,13 @@ bool FSR_Mesh::LoadFromObjFile(const char* fileName, const char* mtlBaseDir)
 			for (size_t s = 0; s < shapes.size(); s++)
 			{
 				const tinyobj::shape_t& shape = shapes[s];
-
+#if 0
+				printf("shape : %s\n", shape.name.c_str());
+				if (strcmp(shape.name.c_str(), "sponza_379") != 0)
+				{
+					continue;
+				}
+#endif
 				uint32_t meshIdxBase = _IndexBuffer.size();
 				for (size_t i = 0; i < shape.mesh.indices.size(); i++)
 				{
@@ -127,14 +133,14 @@ bool FSR_Mesh::LoadFromObjFile(const char* fileName, const char* mtlBaseDir)
 							normal.z = nz;
 						}
 
-						glm::vec3 uv(0.f, 0.f, 1.f);
+						glm::vec2 uv(0.f, 0.f);
 						if (hasUV)
 						{
 							auto ux = attribs.texcoords[2 * index.texcoord_index];
 							auto uy = 1.f - attribs.texcoords[2 * index.texcoord_index + 1];
 
-							uv.s = glm::abs(ux);
-							uv.t = glm::abs(uy);
+							uv.s = ux;
+							uv.t = uy;
 						}
 
 						FSRVertex uniqueVertex;

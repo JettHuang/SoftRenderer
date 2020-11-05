@@ -18,6 +18,17 @@ public:
 	virtual void DrawScene(FSR_Context& ctx, const glm::mat4x4& InViewMat,float InDeltaSeconds) = 0;
 };
 
+// simple quad
+class FDemoScene_Quad : public FDemoScene
+{
+public:
+	virtual void Init(FCamera& InCamera) override;
+	virtual void DrawScene(FSR_Context& ctx, const glm::mat4x4& InViewMat, float InDeltaSeconds) override;
+
+protected:
+	std::shared_ptr<FSR_VertexShader> _vs;
+	std::shared_ptr<FSR_PixelShader> _ps;
+};
 
 // simple cubes
 class FDemoScene_Cubes : public FDemoScene

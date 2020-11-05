@@ -67,6 +67,16 @@
 #include "SR_SSE.h"
 
 
+static const glm::vec4 kClipPlanes[] =
+{
+	glm::vec4(1, 0, 0, 1),
+	glm::vec4(-1, 0, 0, 1),
+	glm::vec4(0, 0, 1, 1),
+	glm::vec4(0, 0, -1, 1),
+	glm::vec4(0, -1, 0, 1),
+	glm::vec4(0, 1, 0, 1)
+};
+
 inline void InterpolateVertex_Linear(const FSRVertexShaderOutput& P1, const FSRVertexShaderOutput& P2, float t, FSRVertexShaderOutput& OutVert)
 {
 	assert(P1._attributes._count == P2._attributes._count);
@@ -124,6 +134,64 @@ static uint32_t ClipAgainstNearPlane(const FSRVertexShaderOutput InVerts[3], FSR
 
 	return newVerts;
 }
+
+static inline float VDOTP(const glm::vec4 &V, const glm::vec4& P)
+{
+	return (P.x * V.x + P.y * V.y + P.z * V.z + P.w * V.w);
+}
+
+static uint32_t ClipAgainstPlane(const FSRVertexShaderOutput InVerts[], const uint32_t InVertsCnt, const glm::vec4 &InPlane,
+	FSRVertexShaderOutput OutVerts[])
+{
+	assert(InVertsCnt >= 2);
+	const FSRVertexShaderOutput* P1 = &InVerts[InVertsCnt - 1];
+	float D1 = VDOTP(P1->_vertex, InPlane);
+
+	uint32_t newVerts = 0;
+	float t = 0.f;
+	for (uint32_t i = 0; i < InVertsCnt; ++i)
+	{
+		const FSRVertexShaderOutput* P2 = &InVerts[i];
+		float D2 = VDOTP(P2->_vertex, InPlane);
+
+		if (D2 >= 0.f) // P2 is at the front of plane
+		{
+			if (D2 == 0.f || D1 >= 0.f) {
+				assert(newVerts < MAX_CLIP_VTXCOUNT);
+				OutVerts[newVerts]._vertex = P2->_vertex;
+				OutVerts[newVerts]._attributes = P2->_attributes;
+				newVerts++;
+			}
+			else // P1 is at the back of plane
+			{
+				t = D1 / (D1 - D2);
+				assert(newVerts < MAX_CLIP_VTXCOUNT);
+				InterpolateVertex_Linear(*P1, *P2, t, OutVerts[newVerts]);
+				newVerts++;
+				assert(newVerts < MAX_CLIP_VTXCOUNT);
+				OutVerts[newVerts]._vertex = P2->_vertex;
+				OutVerts[newVerts]._attributes = P2->_attributes;
+				newVerts++;
+			}
+		}
+		else // P2 is at the back of plane
+		{
+			if (D1 > 0.f) {
+				t = D1 / (D1 - D2);
+				assert(newVerts < MAX_CLIP_VTXCOUNT);
+				InterpolateVertex_Linear(*P1, *P2, t, OutVerts[newVerts]);
+				newVerts++;
+			}
+			// otherwise discards the P1, P2
+		}
+
+		P1 = P2;
+		D1 = D2;
+	} // end for i
+
+	return newVerts;
+}
+
 
 // https://www.scratchapixel.com/lessons/3d-basic-rendering/rasterization-practical-implementation/rasterization-stage
 // https://www.scratchapixel.com/lessons/3d-basic-rendering/rasterization-practical-implementation/visibility-problem-depth-buffer-depth-interpolation
@@ -717,13 +785,13 @@ inline bool IsOnNegtiveSideOf_BotPlane(const glm::vec4& V0, const glm::vec4& V1,
 // draw a triangle
 void FSR_Renderer::DrawTriangle(const FSR_Context& InContext, const FSRVertex& InA, const FSRVertex& InB, const FSRVertex& InC)
 {
+	FSR_Context& InCtx = const_cast<FSR_Context&>(InContext);
+
 #if SR_ENABLE_PERFORMACE_STAT
 	FPerformanceCounter	PerfCounter;
 	FSR_Performance *Stats = InContext._pointers_shadow._stats;
 	double elapse_microseconds = 0.0;
 #endif
-
-	FSRVertexShaderOutput Verts[3];
 
 #if SR_ENABLE_PERFORMACE_STAT
 	PerfCounter.StartPerf();
@@ -732,9 +800,9 @@ void FSR_Renderer::DrawTriangle(const FSR_Context& InContext, const FSRVertex& I
 	FSR_VertexShader *vs = InContext._pointers_shadow._vs;
 	assert(vs);
 
-	vs->Process(InContext, InA, Verts[0]);
-	vs->Process(InContext, InB, Verts[1]);
-	vs->Process(InContext, InC, Verts[2]);
+	vs->Process(InContext, InA, InCtx._clip_vtx_buffer0[0]);
+	vs->Process(InContext, InB, InCtx._clip_vtx_buffer0[1]);
+	vs->Process(InContext, InC, InCtx._clip_vtx_buffer0[2]);
 
 #if SR_ENABLE_PERFORMACE_STAT
 	elapse_microseconds = PerfCounter.EndPerf();
@@ -751,9 +819,9 @@ void FSR_Renderer::DrawTriangle(const FSR_Context& InContext, const FSRVertex& I
 	// frustum culling
 	bool bOutsideOfVolume = false;
 	{
-		const glm::vec4& homogeneous_v0 = Verts[0]._vertex;
-		const glm::vec4& homogeneous_v1 = Verts[1]._vertex;
-		const glm::vec4& homogeneous_v2 = Verts[2]._vertex;
+		const glm::vec4& homogeneous_v0 = InCtx._clip_vtx_buffer0[0]._vertex;
+		const glm::vec4& homogeneous_v1 = InCtx._clip_vtx_buffer0[1]._vertex;
+		const glm::vec4& homogeneous_v2 = InCtx._clip_vtx_buffer0[2]._vertex;
 
 		bOutsideOfVolume =
 			IsOnNegtiveSideOf_LeftPlane(homogeneous_v0, homogeneous_v1, homogeneous_v2) ||
@@ -779,9 +847,29 @@ void FSR_Renderer::DrawTriangle(const FSR_Context& InContext, const FSRVertex& I
 	PerfCounter.StartPerf();
 #endif
 
-	FSRVertexShaderOutput newVerts[4];
-	const uint32_t verts_cnt = ClipAgainstNearPlane(Verts, newVerts);
-	
+#if 0 // DEBUG
+	InCtx._clip_vtx_buffer0[0]._attributes._members[0] = glm::vec4(1.0f, 0.f, 0.f, 1.f);
+	InCtx._clip_vtx_buffer0[1]._attributes._members[0] = glm::vec4(0.0f, 1.f, 0.f, 1.f);
+	InCtx._clip_vtx_buffer0[2]._attributes._members[0] = glm::vec4(0.0f, 0.f, 1.f, 1.f);
+#endif
+
+	uint32_t verts_cnt = 3;
+	FSRVertexShaderOutput* vtx_buffer0 = InCtx._clip_vtx_buffer0;
+	FSRVertexShaderOutput* vtx_buffer1 = InCtx._clip_vtx_buffer1;
+	for (uint32_t i = 0; (i < sizeof(kClipPlanes) / sizeof(kClipPlanes[0])) && verts_cnt >= 3; ++i)
+	{
+		verts_cnt = ClipAgainstPlane(vtx_buffer0, verts_cnt, kClipPlanes[i], vtx_buffer1);
+		FSRVertexShaderOutput* temp = vtx_buffer0;
+		vtx_buffer0 = vtx_buffer1;
+		vtx_buffer1 = temp;
+	};
+	if (verts_cnt < 3)
+	{
+		return; // DISCARD!
+	}
+
+	const FSRVertexShaderOutput* vtx_buffer = vtx_buffer0;
+
 #if SR_ENABLE_PERFORMACE_STAT
 	elapse_microseconds = PerfCounter.EndPerf();
 
@@ -793,14 +881,12 @@ void FSR_Renderer::DrawTriangle(const FSR_Context& InContext, const FSRVertex& I
 	PerfCounter.StartPerf();
 #endif
 
-	if (verts_cnt == 3)
+	uint32_t iv0 = 0, iv1 = 1, iv2 = 2;
+	for (uint32_t i=2; i<verts_cnt; ++i)
 	{
-		RasterizeTriangle(InContext, newVerts[0], newVerts[1], newVerts[2]);
-	}
-	else if (verts_cnt == 4)
-	{
-		RasterizeTriangle(InContext, newVerts[0], newVerts[1], newVerts[2]);
-		RasterizeTriangle(InContext, newVerts[2], newVerts[3], newVerts[0]);
+		iv2 = i;
+		RasterizeTriangle(InContext, vtx_buffer[iv0], vtx_buffer[iv1], vtx_buffer[iv2]);
+		iv1 = iv2;
 	}
 
 #if SR_ENABLE_PERFORMACE_STAT
