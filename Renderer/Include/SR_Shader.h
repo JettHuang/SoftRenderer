@@ -44,6 +44,20 @@ public:
 	virtual uint32_t OutputColorCount() override { return 1; }
 };
 
+// depth only vs & ps
+class FSR_DepthOnlyVertexShader : public FSR_VertexShader
+{
+public:
+	virtual void Process(const FSR_Context& InContext, const FSRVertexShaderInput& Input, FSRVertexShaderOutput& Output) override;
+};
+
+class FSR_DepthOnlyPixelShader : public FSR_PixelShader
+{
+public:
+	virtual void Process(const FSR_Context& InContext, const FSRPixelShaderInput& Input, FSRPixelShaderOutput& Output) override;
+	virtual uint32_t OutputColorCount() override { return 0; }
+};
+
 // diffuse mesh vs & ps
 class FSR_SimpleMeshVertexShader : public FSR_VertexShader
 {

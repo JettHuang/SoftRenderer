@@ -23,6 +23,19 @@ void FSR_SimplePixelShader::Process(const FSR_Context& InContext, const FSRPixel
 	color.a = 1.f;
 }
 
+// depth only
+void FSR_DepthOnlyVertexShader::Process(const FSR_Context& InContext, const FSRVertexShaderInput& Input, FSRVertexShaderOutput& Output)
+{
+	Output._vertex = InContext._mvp * Input._vertex;
+	Output._attributes._count = 0;
+}
+
+void FSR_DepthOnlyPixelShader::Process(const FSR_Context& InContext, const FSRPixelShaderInput& Input, FSRPixelShaderOutput& Output)
+{
+	// do nothing
+}
+
+
 // mesh vs & ps with diffuse texture
 void FSR_SimpleMeshVertexShader::Process(const FSR_Context& InContext, const FSRVertexShaderInput& Input, FSRVertexShaderOutput& Output)
 {

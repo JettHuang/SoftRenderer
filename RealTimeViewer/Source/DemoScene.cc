@@ -172,6 +172,9 @@ void FDemoScene_Cubes::InitializeSceneObjects(std::vector<glm::mat4>& objects)
 
 void FDemoScene_Meshes::Init(FCamera& InCamera)
 {
+	_depthonly_vs = std::make_shared<FSR_DepthOnlyVertexShader>();
+	_depthonly_ps = std::make_shared<FSR_DepthOnlyPixelShader>();
+
 	_vs = std::make_shared<FSR_SimpleMeshVertexShader>();
 	_ps = std::make_shared<FSR_SimpleMeshPixelShader>();
 
@@ -195,9 +198,14 @@ void FDemoScene_Meshes::DrawScene(FSR_Context& ctx, const glm::mat4x4& InViewMat
 {
 	if (_SceneMesh)
 	{
-		ctx.SetShader(_vs, _ps);
-
 		ctx.SetModelViewMatrix(InViewMat);
+
+		// pass 1
+		ctx.SetShader(_depthonly_vs, _depthonly_ps);
+		FSR_Renderer::DrawMesh(ctx, *_SceneMesh);
+
+		// pass 2
+		ctx.SetShader(_vs, _ps);
 		FSR_Renderer::DrawMesh(ctx, *_SceneMesh);
 	}
 }

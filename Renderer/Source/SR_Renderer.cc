@@ -453,15 +453,37 @@ static void RasterizeTriangleNormal(const FSR_Context& InContext, const FSRVerte
 		VectorRegister RegEX = RegEY;
 		for (int32_t cx = X0; cx < X1; ++cx, RegEX = VectorAdd(RegEX, RegVY))
 		{
-			if (VectorAnyGreaterThan(VectorSetFloat1(0.f), RegEX)) // equal if (E12 < 0.f || E20 < 0.f || E01 < 0.f)
-			{
-				// outside of the triangle
-				continue;
-			}
-
 			float E12 = VectorGetComponent(RegEX, 0);
 			float E20 = VectorGetComponent(RegEX, 1);
 			float E01 = VectorGetComponent(RegEX, 2);
+
+			if (E12 < 0.f)
+			{
+				if (edge12.y <= 0.f)
+				{
+					break; // break out of for cx
+				}
+				// outside of the triangle
+				continue;
+			}
+			if (E20 < 0.f)
+			{
+				if (edge20.y <= 0.f)
+				{
+					break; // break out of for cx
+				}
+				// outside of the triangle
+				continue;
+			}
+			if (E01 < 0.f)
+			{
+				if (edge01.y <= 0.f)
+				{
+					break; // break out of for cx
+				}
+				// outside of the triangle
+				continue;
+			}
 
 			// top-left rule:
 			// the pixel or point is considered to overlap a triangle if it is either inside the triangle or 

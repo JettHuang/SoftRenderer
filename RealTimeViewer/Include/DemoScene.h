@@ -55,6 +55,9 @@ public:
 	virtual void DrawScene(FSR_Context& ctx, const glm::mat4x4& InViewMat, float InDeltaSeconds) override;
 
 protected:
+	std::shared_ptr<FSR_VertexShader> _depthonly_vs;
+	std::shared_ptr<FSR_PixelShader> _depthonly_ps;
+
 	std::shared_ptr<FSR_VertexShader> _vs;
 	std::shared_ptr<FSR_PixelShader> _ps;
 
