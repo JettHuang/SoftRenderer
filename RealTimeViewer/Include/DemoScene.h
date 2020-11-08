@@ -63,3 +63,20 @@ protected:
 
 	std::shared_ptr<FSR_Mesh>	_SceneMesh;
 };
+
+
+// teapot scene
+
+class FDemoScene_Teapot : public FDemoScene
+{
+public:
+	virtual void Init(FCamera& InCamera) override;
+	virtual void DrawScene(FSR_Context& ctx, const glm::mat4x4& InViewMat, float InDeltaSeconds) override;
+
+protected:
+	std::shared_ptr<FSR_VertexShader> _vs;
+	std::shared_ptr<FSR_PixelShader> _ps;
+
+	std::shared_ptr<FSR_Mesh>	_SceneMesh;
+	std::shared_ptr<FSR_Material>  _materials[5];
+};

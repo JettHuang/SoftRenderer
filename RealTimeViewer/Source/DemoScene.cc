@@ -201,11 +201,139 @@ void FDemoScene_Meshes::DrawScene(FSR_Context& ctx, const glm::mat4x4& InViewMat
 		ctx.SetModelViewMatrix(InViewMat);
 
 		// pass 1
-		ctx.SetShader(_depthonly_vs, _depthonly_ps);
-		FSR_Renderer::DrawMesh(ctx, *_SceneMesh);
+		// ctx.SetShader(_depthonly_vs, _depthonly_ps);
+		// FSR_Renderer::DrawMesh(ctx, *_SceneMesh);
 
 		// pass 2
 		ctx.SetShader(_vs, _ps);
 		FSR_Renderer::DrawMesh(ctx, *_SceneMesh);
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+// https://zhuanlan.zhihu.com/p/21961722
+class FTeapotMaterial : public FSR_Material
+{
+public:
+	FTeapotMaterial(float metalness, float smoothness)
+		: _metalness(metalness)
+		, _smoothness(smoothness)
+	{}
+
+	float _metalness;
+	float _smoothness;
+};
+
+class FTeapot_VertexShader : public FSR_VertexShader
+{
+public:
+	virtual void Process(const FSR_Context& InContext, const FSRVertexShaderInput& Input, FSRVertexShaderOutput& Output) override
+	{
+		Output._vertex = InContext._mvp * Input._vertex;
+		Output._attributes = Input._attributes;
+	}
+};
+
+class FTeapot_PixelShader : public FSR_PixelShader
+{
+public:
+	FTeapot_PixelShader()
+	{
+		albedo = glm::vec3(1.0, 0.782, 0.344);
+		kFb = glm::vec3(0.04, 0.04, 0.04);
+		light_dir = glm::fastNormalize(glm::vec3(0.0f, 0.0f, 1.0f));
+		light_color = glm::vec3(1.f, 1.f, 1.f);
+		view_dir = glm::vec3(0, 0, 1.f);
+		halfvector = glm::fastNormalize(view_dir + light_dir);
+	}
+
+	virtual uint32_t OutputColorCount() override { return 1; }
+
+	virtual void Process(const FSR_Context& InContext, const FSRPixelShaderInput& Input, FSRPixelShaderOutput& Output) override
+	{
+#if 0
+		glm::vec3 N = glm::fastNormalize(InContext._modelview_inv_t * Input._attributes._members[0]);
+		glm::vec3 n = N * glm::vec3(0.5) + glm::vec3(0.5); // transform normal values [-1, 1] -> [0, 1] to visualize better
+		Output._colors[0] = glm::vec4(n, 1.f);
+		Output._color_cnt = 1;
+#else
+		std::shared_ptr<FTeapotMaterial> material = std::dynamic_pointer_cast<FTeapotMaterial>(InContext._material);
+		float smoothness = material->_smoothness;
+		float metalness = material->_metalness;
+
+		diffuse = albedo * (1.f - metalness);
+		specular = glm::mix(kFb, albedo, metalness);
+
+		glm::vec3 N = glm::fastNormalize(InContext._modelview_inv_t * Input._attributes._members[0]);
+		float NdotH = glm::clamp(glm::dot(N, halfvector), 0.f, 1.f);
+		float HdotV = glm::clamp(glm::dot(halfvector, view_dir), 0.f, 1.f);
+		float NdotL = glm::clamp(glm::dot(N, light_dir), 0.f, 1.f);
+		glm::vec3 fresnel = fresnelSchlick(HdotV, specular);
+
+		glm::vec3 color = (diffuse + ((smoothness + 2.f) / 8.f) * powf(NdotH, smoothness) * fresnel) * light_color * NdotL;
+		Output._colors[0] = glm::vec4(color, 1.f);
+#endif
+	}
+
+	glm::vec3 fresnelSchlick(float HdotV, const glm::vec3& F0) const
+	{
+		return F0 + (glm::vec3(1.f, 1.f, 1.f) - F0) * powf(1.f - HdotV, 5.f);
+	}
+
+protected:
+	glm::vec3 albedo;
+	glm::vec3 diffuse;
+	glm::vec3 kFb;
+	glm::vec3 specular;
+	glm::vec3 light_dir;
+	glm::vec3 light_color;
+	glm::vec3 view_dir;
+	glm::vec3 halfvector;
+};
+
+
+void FDemoScene_Teapot::Init(FCamera& InCamera)
+{
+	_vs = std::make_shared<FTeapot_VertexShader>();
+	_ps = std::make_shared<FTeapot_PixelShader>();
+
+	_materials[0] = std::make_shared<FTeapotMaterial>(0.f, 5.f);
+	_materials[1] = std::make_shared<FTeapotMaterial>(0.3f, 5.f);
+	_materials[2] = std::make_shared<FTeapotMaterial>(0.6f, 5.f);
+	_materials[3] = std::make_shared<FTeapotMaterial>(0.8f, 5.f);
+	_materials[4] = std::make_shared<FTeapotMaterial>(1.0f, 5.f);
+
+	// load mesh
+	std::cerr << "Loading mesh .... " << std::endl;
+	_SceneMesh = std::make_shared<FSR_Mesh>();
+	if (!_SceneMesh->LoadFromObjFile("./Assets/teapot.obj", "./Assets/"))
+	{
+		std::cerr << "Load .obj scene failed." << std::endl;
+	}
+	std::cerr << "Loading mesh Finished.... " << std::endl;
+
+	glm::vec3 eye(0, 2.0, 2.0);
+	glm::vec3 lookat(0, 0, 0);
+	glm::vec3 up(0, 1, 0);
+
+	InCamera.Init(eye, up, 0, -45);
+	InCamera.MovementSpeed = 1.f;
+}
+
+void FDemoScene_Teapot::DrawScene(FSR_Context& ctx, const glm::mat4x4& InViewMat, float InDeltaSeconds)
+{
+	if (_SceneMesh)
+	{
+		float offsetx = -2.f;
+		for (int i = 0; i < 5; ++i, offsetx += 1.f)
+		{
+			const glm::mat4 modelview = glm::translate(InViewMat, glm::vec3(offsetx, 0, 0));
+			ctx.SetModelViewMatrix(modelview);
+			ctx.SetMaterial(_materials[i]);
+
+			ctx.SetShader(_vs, _ps);
+			FSR_Renderer::DrawMesh(ctx, *_SceneMesh);
+		} // end for i
 	}
 }

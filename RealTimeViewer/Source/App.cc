@@ -30,8 +30,9 @@ bool FApp::Initialize(const char* InCaption, int32_t InWidth, int32_t InHeight)
 	_SDLRenderTexture = SDL_CreateTexture(_SDLRenderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, _Width, _Height);
 
 	// _DemoScene = std::make_shared<FDemoScene_Cubes>();
-	 _DemoScene = std::make_shared<FDemoScene_Meshes>();
+	// _DemoScene = std::make_shared<FDemoScene_Meshes>();
 	// _DemoScene = std::make_shared<FDemoScene_Quad>();
+	_DemoScene = std::make_shared<FDemoScene_Teapot>();
 	if (_DemoScene)
 	{
 		_DemoScene->Init(_Camera);
