@@ -230,7 +230,7 @@ class FTeapot_VertexShader : public FSR_VertexShader
 public:
 	virtual void Process(const FSR_Context& InContext, const FSRVertexShaderInput& Input, FSRVertexShaderOutput& Output) override
 	{
-		Output._vertex = InContext._mvp * Input._vertex;
+		Output._vertex = InContext._mvps._mvp * Input._vertex;
 		Output._attributes = Input._attributes;
 	}
 };
@@ -250,22 +250,22 @@ public:
 
 	virtual uint32_t OutputColorCount() override { return 1; }
 
-	virtual void Process(const FSR_Context& InContext, const FSRPixelShaderInput& Input, FSRPixelShaderOutput& Output) override
+	virtual void Process(const FSRPixelShaderContext& InContext, const FSRPixelShaderInput& Input, FSRPixelShaderOutput& Output) override
 	{
 #if 0
-		glm::vec3 N = glm::fastNormalize(InContext._modelview_inv_t * Input._attributes._members[0]);
+		glm::vec3 N = glm::fastNormalize(InContext._mvps._modelview_inv_t * Input._attributes._members[0]);
 		glm::vec3 n = N * glm::vec3(0.5) + glm::vec3(0.5); // transform normal values [-1, 1] -> [0, 1] to visualize better
 		Output._colors[0] = glm::vec4(n, 1.f);
 		Output._color_cnt = 1;
 #else
-		std::shared_ptr<FTeapotMaterial> material = std::dynamic_pointer_cast<FTeapotMaterial>(InContext._material);
+		FTeapotMaterial* material = dynamic_cast<FTeapotMaterial*>(InContext._material);
 		float smoothness = material->_smoothness;
 		float metalness = material->_metalness;
 
 		diffuse = albedo * (1.f - metalness);
 		specular = glm::mix(kFb, albedo, metalness);
 
-		glm::vec3 N = glm::fastNormalize(InContext._modelview_inv_t * Input._attributes._members[0]);
+		glm::vec3 N = glm::fastNormalize(InContext._mvps._modelview_inv_t * Input._attributes._members[0]);
 		float NdotH = glm::clamp(glm::dot(N, halfvector), 0.f, 1.f);
 		float HdotV = glm::clamp(glm::dot(halfvector, view_dir), 0.f, 1.f);
 		float NdotL = glm::clamp(glm::dot(N, light_dir), 0.f, 1.f);

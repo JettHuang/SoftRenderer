@@ -9,6 +9,13 @@
 
 class FSR_Context;
 
+// PS Context
+struct FSRPixelShaderContext
+{
+	FMVPMatrixs	_mvps;
+	class FSR_Material* _material;
+};
+
 // vs shader
 class FSR_VertexShader
 {
@@ -25,7 +32,7 @@ class FSR_PixelShader
 public:
 	virtual ~FSR_PixelShader() {}
 
-	virtual void Process(const FSR_Context& InContext, const FSRPixelShaderInput &Input, FSRPixelShaderOutput &Output) = 0;
+	virtual void Process(const FSRPixelShaderContext& InContext, const FSRPixelShaderInput &Input, FSRPixelShaderOutput &Output) = 0;
 	virtual uint32_t OutputColorCount() { return 1; }
 };
 
@@ -40,7 +47,7 @@ public:
 class FSR_SimplePixelShader : public FSR_PixelShader
 {
 public:
-	virtual void Process(const FSR_Context& InContext, const FSRPixelShaderInput& Input, FSRPixelShaderOutput& Output) override;
+	virtual void Process(const FSRPixelShaderContext& InContext, const FSRPixelShaderInput& Input, FSRPixelShaderOutput& Output) override;
 	virtual uint32_t OutputColorCount() override { return 1; }
 };
 
@@ -54,7 +61,7 @@ public:
 class FSR_DepthOnlyPixelShader : public FSR_PixelShader
 {
 public:
-	virtual void Process(const FSR_Context& InContext, const FSRPixelShaderInput& Input, FSRPixelShaderOutput& Output) override;
+	virtual void Process(const FSRPixelShaderContext& InContext, const FSRPixelShaderInput& Input, FSRPixelShaderOutput& Output) override;
 	virtual uint32_t OutputColorCount() override { return 0; }
 };
 
@@ -68,6 +75,6 @@ public:
 class FSR_SimpleMeshPixelShader : public FSR_PixelShader
 {
 public:
-	virtual void Process(const FSR_Context& InContext, const FSRPixelShaderInput& Input, FSRPixelShaderOutput& Output) override;
+	virtual void Process(const FSRPixelShaderContext& InContext, const FSRPixelShaderInput& Input, FSRPixelShaderOutput& Output) override;
 	virtual uint32_t OutputColorCount() override { return 1; }
 };

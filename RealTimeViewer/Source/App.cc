@@ -29,10 +29,13 @@ bool FApp::Initialize(const char* InCaption, int32_t InWidth, int32_t InHeight)
 
 	_SDLRenderTexture = SDL_CreateTexture(_SDLRenderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, _Width, _Height);
 
+
+	_SR_Ctx.EnableMultiThreads();
+
 	// _DemoScene = std::make_shared<FDemoScene_Cubes>();
-	// _DemoScene = std::make_shared<FDemoScene_Meshes>();
+	 _DemoScene = std::make_shared<FDemoScene_Meshes>();
 	// _DemoScene = std::make_shared<FDemoScene_Quad>();
-	_DemoScene = std::make_shared<FDemoScene_Teapot>();
+	//_DemoScene = std::make_shared<FDemoScene_Teapot>();
 	if (_DemoScene)
 	{
 		_DemoScene->Init(_Camera);
@@ -55,6 +58,8 @@ bool FApp::Initialize(const char* InCaption, int32_t InWidth, int32_t InHeight)
 
 void FApp::Uninitialize()
 {
+	FSR_Renderer::TerminateMultiThreads(_SR_Ctx);
+
 	SDL_DestroyTexture(_SDLRenderTexture);
 	SDL_DestroyRenderer(_SDLRenderer);
 	SDL_DestroyWindow(_SDLWindow);

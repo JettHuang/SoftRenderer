@@ -3,6 +3,7 @@
 //
 
 #include "SR_Context.h"
+#include "SR_Renderer.h"
 #include "SR_SSE.h"
 
 
@@ -32,12 +33,8 @@ uint32_t LookupPixelFormatBytes(EPixelFormat InFormat)
 }
 
 FSR_Context::FSR_Context()
-	: _viewport_rect(0, 0, 1, 1)
-	, _modelview(1.f)
-	, _modelview_inv(1.f)
-	, _modelview_inv_t(1.f)
-	, _projection(1.f)
-	, _projection_inv(1.f)
+	: _bEnableMultiThreads(false)
+	, _viewport_rect(0, 0, 1, 1)
 	, _front_face(EFrontFace::FACE_CW)
 	, _bEnableMSAA(false)
 	, _MSAASamplesNum(MSAA_SAMPLES)
@@ -45,12 +42,16 @@ FSR_Context::FSR_Context()
 	memset(&_pointers_shadow, 0, sizeof(_pointers_shadow));
 
 	_stats = std::make_shared<FSR_Performance>();
-	_pointers_shadow._stats = _stats.get();
 	UpdateMVP();
 }
 
 FSR_Context::~FSR_Context()
 {
+}
+
+void FSR_Context::EnableMultiThreads()
+{
+	_bEnableMultiThreads = FSR_Renderer::EnableMultiThreads();
 }
 
 // set render target
@@ -124,9 +125,9 @@ void FSR_Context::SetViewport(uint32_t x, uint32_t y, uint32_t w, uint32_t h)
 
 void FSR_Context::SetModelViewMatrix(const glm::mat4x4& InModelView)
 {
-	_modelview = InModelView;
-	_modelview_inv = glm::inverse(InModelView);
-	_modelview_inv_t = glm::transpose(_modelview_inv);
+	_mvps._modelview = InModelView;
+	_mvps._modelview_inv = glm::inverse(InModelView);
+	_mvps._modelview_inv_t = glm::transpose(_mvps._modelview_inv);
 
 	UpdateMVP();
 }
@@ -134,16 +135,16 @@ void FSR_Context::SetModelViewMatrix(const glm::mat4x4& InModelView)
 // set projection matrix
 void FSR_Context::SetProjectionMatrix(const glm::mat4x4& InProj)
 {
-	_projection = InProj;
-	_projection_inv = glm::inverse(InProj);
+	_mvps._projection = InProj;
+	_mvps._projection_inv = glm::inverse(InProj);
 
 	UpdateMVP();
 }
 
 void FSR_Context::UpdateMVP()
 {
-	_mvp = _projection * _modelview;
-	_mvp_inv = glm::inverse(_mvp);
+	_mvps._mvp = _mvps._projection * _mvps._modelview;
+	_mvps._mvp_inv = glm::inverse(_mvps._mvp);
 }
 
 // set material
@@ -199,6 +200,7 @@ void FSR_Context::BeginFrame()
 
 void FSR_Context::EndFrame()
 {
+	FSR_Renderer::Flush(*this);
 	ResolveMSAABuffer();
 }
 

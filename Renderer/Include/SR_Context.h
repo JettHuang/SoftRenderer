@@ -21,6 +21,7 @@ public:
 	FSR_Context();
 	virtual ~FSR_Context();
 
+	void EnableMultiThreads();
 	// set render target
 	void SetRenderTarget(uint32_t w, uint32_t h, uint32_t nCount, bool InbEnableMSAA = false);
 	// clear render target
@@ -74,15 +75,9 @@ protected:
 	void ResolveMSAABuffer();
 
 public:
+	bool			_bEnableMultiThreads;
 	FSR_Rectangle	_viewport_rect;
-	
-	glm::mat4x4 _modelview;
-	glm::mat4x4 _modelview_inv;
-	glm::mat3x3	_modelview_inv_t;
-	glm::mat4x4 _projection;
-	glm::mat4x4 _projection_inv;
-	glm::mat4x4 _mvp;
-	glm::mat4x4 _mvp_inv;
+	FMVPMatrixs		_mvps;
 
 	EFrontFace	_front_face;
 	// clip vertex buffer
@@ -104,17 +99,16 @@ public:
 	std::shared_ptr<FSR_Performance>	_stats;
 
 	// shadow pointer of aboves
-	struct {
+	struct FPointersShadow {
 		FSR_DepthBuffer* _rt_depth;
 		FSR_Texture2D*	 _rt_colors[MAX_MRT_COUNT];
 
 		FSR_DepthBuffer*	_rt_depth_msaa;
 		FSR_Texture2D*		_rt_colors_msaa[MAX_MRT_COUNT];
 
-		FSR_Material*		_material;
-		FSR_VertexShader*	_vs;
-		FSR_PixelShader*	_ps;
+		FSR_VertexShader* _vs;
+		FSR_PixelShader* _ps;
 
-		FSR_Performance*	_stats;
+		FSR_Material*		_material;
 	} _pointers_shadow;
 };

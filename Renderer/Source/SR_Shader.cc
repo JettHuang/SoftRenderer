@@ -9,11 +9,11 @@
 // simple vs & ps with color
 void FSR_SimpleVertexShader::Process(const FSR_Context& InContext, const FSRVertexShaderInput& Input, FSRVertexShaderOutput& Output)
 {
-	Output._vertex = InContext._mvp * Input._vertex;
+	Output._vertex = InContext._mvps._mvp * Input._vertex;
 	Output._attributes = Input._attributes;
 }
 
-void FSR_SimplePixelShader::Process(const FSR_Context& InContext, const FSRPixelShaderInput& Input, FSRPixelShaderOutput& Output)
+void FSR_SimplePixelShader::Process(const FSRPixelShaderContext& InContext, const FSRPixelShaderInput& Input, FSRPixelShaderOutput& Output)
 {
 	const glm::vec3 &V4 = Input._attributes._members[0];
 	glm::vec4& color = Output._colors[0];
@@ -26,11 +26,11 @@ void FSR_SimplePixelShader::Process(const FSR_Context& InContext, const FSRPixel
 // depth only
 void FSR_DepthOnlyVertexShader::Process(const FSR_Context& InContext, const FSRVertexShaderInput& Input, FSRVertexShaderOutput& Output)
 {
-	Output._vertex = InContext._mvp * Input._vertex;
+	Output._vertex = InContext._mvps._mvp * Input._vertex;
 	Output._attributes._count = 0;
 }
 
-void FSR_DepthOnlyPixelShader::Process(const FSR_Context& InContext, const FSRPixelShaderInput& Input, FSRPixelShaderOutput& Output)
+void FSR_DepthOnlyPixelShader::Process(const FSRPixelShaderContext& InContext, const FSRPixelShaderInput& Input, FSRPixelShaderOutput& Output)
 {
 	// do nothing
 }
@@ -39,11 +39,11 @@ void FSR_DepthOnlyPixelShader::Process(const FSR_Context& InContext, const FSRPi
 // mesh vs & ps with diffuse texture
 void FSR_SimpleMeshVertexShader::Process(const FSR_Context& InContext, const FSRVertexShaderInput& Input, FSRVertexShaderOutput& Output)
 {
-	Output._vertex = InContext._mvp * Input._vertex;
+	Output._vertex = InContext._mvps._mvp * Input._vertex;
 	Output._attributes = Input._attributes;
 }
 
-void FSR_SimpleMeshPixelShader::Process(const FSR_Context& InContext, const FSRPixelShaderInput& Input, FSRPixelShaderOutput& Output)
+void FSR_SimpleMeshPixelShader::Process(const FSRPixelShaderContext& InContext, const FSRPixelShaderInput& Input, FSRPixelShaderOutput& Output)
 {
 #if 0
 	glm::vec4 n = Input._attributes._members[0] * glm::vec4(0.5) + glm::vec4(0.5); // transform normal values [-1, 1] -> [0, 1] to visualize better

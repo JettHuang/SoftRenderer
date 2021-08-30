@@ -339,81 +339,42 @@ inline void InterpolateVertexAttributes(const FSRVertexAttributes& V0, float w0,
 #endif
 }
 
-static void RasterizeTriangleNormal(const FSR_Context& InContext, const FSRVertexShaderOutput& A, const FSRVertexShaderOutput& B, const FSRVertexShaderOutput& C)
+
+
+//////////////////////////////////////////////////////////////
+/// Tiled Rendering
+///
+struct FTiledRenderingContext
 {
-#if SR_ENABLE_PERFORMACE_STAT
-	FPerformanceCounter	PerfCounter;
-	FSR_Performance* Stats = InContext._pointers_shadow._stats;
-	double elapse_microseconds = 0.0;
-#endif
+	const FSR_Context* _SRCtx;
+	FSR_Context::FPointersShadow _Pointers;
+	FSRPixelShaderContext _psCtx;
 
-	const FSRVertexShaderOutput* ABC[3] = { &A, &B, &C };
-	FSR_RasterizedVert screen[3];
+	/* triangle info */
+	float _kOneOverE012;
+	FSR_RasterizedVert _SV0, _SV1, _SV2;
+	FSRVertexAttributes _VA0, _VA1, _VA2;
 
-	// perspective divide
-	for (int32_t k=0; k<3; ++k)
-	{
-		const glm::vec4& vertex = ABC[k]->_vertex;
-		FSR_RasterizedVert& srv = screen[k];
+	/* tile info */
+	int32_t _X0, _Y0, _X1, _Y1;
+};
 
-		float inv_w = 1.f / vertex.w;
-		srv._inv_w = inv_w;
-#if 0
-		srv._ndc_pos.x = vertex.x * inv_w;
-		srv._ndc_pos.y = vertex.y * inv_w;
-		srv._ndc_pos.z = vertex.z * inv_w;
-#else
-		VectorRegister R0 = VectorLoadFloat3_W0(&vertex.x);
-		VectorRegister R1 = VectorSetFloat1(inv_w);
-		VectorRegister R2 = VectorMultiply(R0, R1);
-		VectorStoreFloat3(R2, &(srv._ndc_pos.x));
-#endif
-		srv._screen_pos = InContext.NDCToScreenPostion(srv._ndc_pos);
-	}
+static void RasterizeTriangleNormal_Tile(const FTiledRenderingContext &InCtx)
+{
+	const float kOneOverE012 = InCtx._kOneOverE012;
+	const FSR_RasterizedVert& SV0 = InCtx._SV0;
+	const FSR_RasterizedVert& SV1 = InCtx._SV1;
+	const FSR_RasterizedVert& SV2 = InCtx._SV2;
+	const FSRVertexAttributes& VA0 = InCtx._VA0;
+	const FSRVertexAttributes& VA1 = InCtx._VA1;
+	const FSRVertexAttributes& VA2 = InCtx._VA2;
 
-	uint32_t iv0 = 0, iv1 = 1, iv2 = 2;
-	float E012 = EdgeFunction(screen[0]._screen_pos, screen[1]._screen_pos, screen[2]._screen_pos);
-	if (E012 > -1.f && E012 < 1.f)
-	{
-		return; // DISCARD!
-	}
+	const int32_t X0 = InCtx._X0;
+	const int32_t Y0 = InCtx._Y0;
+	const int32_t X1 = InCtx._X1;
+	const int32_t Y1 = InCtx._Y1;
 
-	bool bClockwise = (E012 >= 0.f);
-	bool bClipped = bClockwise ^ (InContext._front_face == EFrontFace::FACE_CW);
-	if (bClipped)
-	{
-		return;  // DISCARD!
-	}
-
-	if (!bClockwise) // exchange v to clockwise
-	{
-		iv1 = 2; iv2 = 1;
-		E012 = -E012;
-	}
-
-	FSR_Rectangle bbox;
-	const FSR_Rectangle bbox_triangle = BoundingboxOfTriangle(screen[0]._screen_pos, screen[1]._screen_pos, screen[2]._screen_pos);
-	if (!intersect(bbox_triangle, InContext.ViewportRectangle(), bbox))
-	{
-		return; // DISCARD!
-	}
-
-	const float kOneOverE012 = 1.f / E012;
-	const FSR_RasterizedVert& SV0 = screen[iv0];
-	const FSR_RasterizedVert& SV1 = screen[iv1];
-	const FSR_RasterizedVert& SV2 = screen[iv2];
-
-	FSRVertexAttributes VA0, VA1, VA2;
-	DivideVertexAttributesByW(ABC[iv0]->_attributes, SV0._inv_w, VA0);
-	DivideVertexAttributesByW(ABC[iv1]->_attributes, SV1._inv_w, VA1);
-	DivideVertexAttributesByW(ABC[iv2]->_attributes, SV2._inv_w, VA2);
-
-	const int32_t X0 = static_cast<int32_t>(floor(bbox._minx));
-	const int32_t Y0 = static_cast<int32_t>(floor(bbox._miny));
-	const int32_t X1 = static_cast<int32_t>(ceilf(bbox._maxx));
-	const int32_t Y1 = static_cast<int32_t>(ceilf(bbox._maxy));
-
-	FSR_PixelShader* ps = InContext._pointers_shadow._ps;
+	FSR_PixelShader* ps = InCtx._Pointers._ps;
 	assert(ps);
 
 	FSRPixelShaderInput PixelInput;
@@ -421,14 +382,14 @@ static void RasterizeTriangleNormal(const FSR_Context& InContext, const FSRVerte
 
 	// set count only once
 	PixelInput._attributes._count = VA0._count;
-	PixelOutput._color_cnt = InContext._ps->OutputColorCount();
+	PixelOutput._color_cnt = ps->OutputColorCount();
 	assert(PixelOutput._color_cnt <= MAX_MRT_COUNT);
 
 	// depth buffer & color buffer
 	uint8_t* pDepthBufferRow;
 	uint8_t* pColorBufferRows[MAX_MRT_COUNT];
 
-	assert(InContext._pointers_shadow._rt_depth);
+	assert(InCtx._Pointers._rt_depth);
 
 	const glm::vec3 P(X0 + 0.5f, Y0 + 0.5f, 0.f);
 	const float PE12 = EdgeFunction(SV1._screen_pos, SV2._screen_pos, P);
@@ -443,11 +404,11 @@ static void RasterizeTriangleNormal(const FSR_Context& InContext, const FSRVerte
 	VectorRegister RegVY = MakeVectorRegister(edge12.y, edge20.y, edge01.y, 0.f);
 	for (int32_t cy = Y0; cy < Y1; ++cy, RegEY = VectorSubtract(RegEY, RegVX))
 	{
-		pDepthBufferRow = InContext._pointers_shadow._rt_depth->GetRowData(cy);
-		for (uint32_t k=0; k < PixelOutput._color_cnt; ++k)
+		pDepthBufferRow = InCtx._Pointers._rt_depth->GetRowData(cy);
+		for (uint32_t k = 0; k < PixelOutput._color_cnt; ++k)
 		{
-			assert(InContext._pointers_shadow._rt_colors[k]);
-			pColorBufferRows[k] = InContext._pointers_shadow._rt_colors[k]->GetRowData(cy);;
+			assert(InCtx._Pointers._rt_colors[k]);
+			pColorBufferRows[k] = InCtx._Pointers._rt_colors[k]->GetRowData(cy);;
 		}
 
 		VectorRegister RegEX = RegEY;
@@ -511,26 +472,18 @@ static void RasterizeTriangleNormal(const FSR_Context& InContext, const FSRVerte
 
 			const float depth = w0 * SV0._screen_pos.z + w1 * SV1._screen_pos.z + w2 * SV2._screen_pos.z;
 			const float W = 1.f / (w0 * SV0._inv_w + w1 * SV1._inv_w + w2 * SV2._inv_w);
-			
-#if SR_ENABLE_PERFORMACE_STAT
-			PerfCounter.StartPerf();
-#endif
+
 			bool bPassDepth = false;
 			{
 				float PrevDepth;
-				InContext._pointers_shadow._rt_depth->Read(pDepthBufferRow, cx, PrevDepth);
+				InCtx._Pointers._rt_depth->Read(pDepthBufferRow, cx, PrevDepth);
 				if (depth <= PrevDepth)
 				{
-					InContext._pointers_shadow._rt_depth->Write(pDepthBufferRow, cx, depth);
+					InCtx._Pointers._rt_depth->Write(pDepthBufferRow, cx, depth);
 					bPassDepth = true;
 				}
 			}
 
-#if SR_ENABLE_PERFORMACE_STAT
-			elapse_microseconds = PerfCounter.EndPerf();
-			Stats->_depth_tw_count++;
-			Stats->_depth_total_microseconds += elapse_microseconds;
-#endif
 			if (!bPassDepth)
 			{
 				continue;
@@ -539,58 +492,45 @@ static void RasterizeTriangleNormal(const FSR_Context& InContext, const FSRVerte
 			// attributes
 			InterpolateVertexAttributes(VA0, w0, VA1, w1, VA2, w2, W, PixelInput._attributes);
 
-#if SR_ENABLE_PERFORMACE_STAT
-			PerfCounter.StartPerf();
-#endif
-			ps->Process(InContext, PixelInput, PixelOutput);
+			ps->Process(InCtx._psCtx, PixelInput, PixelOutput);
 
-#if SR_ENABLE_PERFORMACE_STAT
-			elapse_microseconds = PerfCounter.EndPerf();
-			Stats->_ps_invoke_count++;
-			Stats->_ps_total_microseconds += elapse_microseconds;
-#endif
-			
-#if SR_ENABLE_PERFORMACE_STAT
-			PerfCounter.StartPerf();
-#endif
 			// output and merge color
 			for (uint32_t k = 0; k < PixelOutput._color_cnt; ++k)
 			{
 				const glm::vec4& color = PixelOutput._colors[k];
-				FSR_Texture2D* rt = InContext._pointers_shadow._rt_colors[k];
+				FSR_Texture2D* rt = InCtx._Pointers._rt_colors[k];
 				rt->Write(pColorBufferRows[k], cx, &color.r);
 			} // end for k
-#if SR_ENABLE_PERFORMACE_STAT
-			elapse_microseconds = PerfCounter.EndPerf();
-			Stats->_color_write_count += PixelOutput._color_cnt;
-			Stats->_color_total_microseconds += elapse_microseconds;
-#endif
+
 		} //end cx
-} // end cy
+	} // end cy
 }
 
-static void RasterizeTriangleMSAA4(const FSR_Context& InContext, const FSRVertexShaderOutput& A, const FSRVertexShaderOutput& B, const FSRVertexShaderOutput& C)
+static void MultiThreadsProcessTile(const FTiledRenderingContext& InCtx, void (*handler)(const FTiledRenderingContext& InCtx));
+static void RasterizeTriangleNormal(const FSR_Context& InContext, const FSRVertexShaderOutput& A, const FSRVertexShaderOutput& B, const FSRVertexShaderOutput& C)
 {
-	assert(InContext._MSAASamplesNum == 4);
-
-#if SR_ENABLE_PERFORMACE_STAT
-	FPerformanceCounter	PerfCounter;
-	FSR_Performance* Stats = InContext._pointers_shadow._stats;
-	double elapse_microseconds = 0.0;
-#endif
-
 	const FSRVertexShaderOutput* ABC[3] = { &A, &B, &C };
 	FSR_RasterizedVert screen[3];
 
 	// perspective divide
-	for (uint32_t i = 0; i < 3; ++i)
+	for (int32_t k=0; k<3; ++k)
 	{
-		float inv_w = 1.f / ABC[i]->_vertex.w;
-		screen[i]._inv_w = inv_w;
-		screen[i]._ndc_pos.x = ABC[i]->_vertex.x * inv_w;
-		screen[i]._ndc_pos.y = ABC[i]->_vertex.y * inv_w;
-		screen[i]._ndc_pos.z = ABC[i]->_vertex.z * inv_w;
-		screen[i]._screen_pos = InContext.NDCToScreenPostion(screen[i]._ndc_pos);
+		const glm::vec4& vertex = ABC[k]->_vertex;
+		FSR_RasterizedVert& srv = screen[k];
+
+		float inv_w = 1.f / vertex.w;
+		srv._inv_w = inv_w;
+#if 0
+		srv._ndc_pos.x = vertex.x * inv_w;
+		srv._ndc_pos.y = vertex.y * inv_w;
+		srv._ndc_pos.z = vertex.z * inv_w;
+#else
+		VectorRegister R0 = VectorLoadFloat3_W0(&vertex.x);
+		VectorRegister R1 = VectorSetFloat1(inv_w);
+		VectorRegister R2 = VectorMultiply(R0, R1);
+		VectorStoreFloat3(R2, &(srv._ndc_pos.x));
+#endif
+		srv._screen_pos = InContext.NDCToScreenPostion(srv._ndc_pos);
 	}
 
 	uint32_t iv0 = 0, iv1 = 1, iv2 = 2;
@@ -620,33 +560,73 @@ static void RasterizeTriangleMSAA4(const FSR_Context& InContext, const FSRVertex
 		return; // DISCARD!
 	}
 
+	FTiledRenderingContext TileCtx;
+
+	TileCtx._SRCtx = &InContext;
+	TileCtx._Pointers = InContext._pointers_shadow;
+	TileCtx._psCtx._mvps = InContext._mvps;
+	TileCtx._psCtx._material = InContext._pointers_shadow._material;
+
 	const float kOneOverE012 = 1.f / E012;
 	const FSR_RasterizedVert& SV0 = screen[iv0];
 	const FSR_RasterizedVert& SV1 = screen[iv1];
 	const FSR_RasterizedVert& SV2 = screen[iv2];
 
-	FSRVertexAttributes VA0, VA1, VA2;
-	DivideVertexAttributesByW(ABC[iv0]->_attributes, SV0._inv_w, VA0);
-	DivideVertexAttributesByW(ABC[iv1]->_attributes, SV1._inv_w, VA1);
-	DivideVertexAttributesByW(ABC[iv2]->_attributes, SV2._inv_w, VA2);
+	TileCtx._kOneOverE012 = kOneOverE012;
+	TileCtx._SV0 = SV0;
+	TileCtx._SV1 = SV1;
+	TileCtx._SV2 = SV2;
+
+	DivideVertexAttributesByW(ABC[iv0]->_attributes, SV0._inv_w, TileCtx._VA0);
+	DivideVertexAttributesByW(ABC[iv1]->_attributes, SV1._inv_w, TileCtx._VA1);
+	DivideVertexAttributesByW(ABC[iv2]->_attributes, SV2._inv_w, TileCtx._VA2);
 
 	const int32_t X0 = static_cast<int32_t>(floor(bbox._minx));
 	const int32_t Y0 = static_cast<int32_t>(floor(bbox._miny));
 	const int32_t X1 = static_cast<int32_t>(ceilf(bbox._maxx));
 	const int32_t Y1 = static_cast<int32_t>(ceilf(bbox._maxy));
 
-	FSR_PixelShader* ps = InContext._pointers_shadow._ps;
+	TileCtx._X0 = X0;
+	TileCtx._Y0 = Y0;
+	TileCtx._X1 = X1;
+	TileCtx._Y1 = Y1;
+
+	if (InContext._bEnableMultiThreads) {
+		MultiThreadsProcessTile(TileCtx, &RasterizeTriangleNormal_Tile);
+	}
+	else {
+		RasterizeTriangleNormal_Tile(TileCtx);
+	}
+}
+
+static void RasterizeTriangleMSAA4_Tile(const FTiledRenderingContext& InCtx)
+{
+	static const float samples_pattern[4][2] = { { 0.25f, 0.25f }, { 0.75f, 0.25f }, { 0.75f, 0.75f }, { 0.25f, 0.75f } };
+
+	const float kOneOverE012 = InCtx._kOneOverE012;
+	const FSR_RasterizedVert& SV0 = InCtx._SV0;
+	const FSR_RasterizedVert& SV1 = InCtx._SV1;
+	const FSR_RasterizedVert& SV2 = InCtx._SV2;
+	const FSRVertexAttributes& VA0 = InCtx._VA0;
+	const FSRVertexAttributes& VA1 = InCtx._VA1;
+	const FSRVertexAttributes& VA2 = InCtx._VA2;
+
+	const int32_t X0 = InCtx._X0;
+	const int32_t Y0 = InCtx._Y0;
+	const int32_t X1 = InCtx._X1;
+	const int32_t Y1 = InCtx._Y1;
+
+	FSR_PixelShader* ps = InCtx._Pointers._ps;
 	assert(ps);
 
-	static const float samples_pattern[4][2] = { { 0.25f, 0.25f }, { 0.75f, 0.25f }, { 0.75f, 0.75f }, { 0.25f, 0.75f } };
 	glm::vec3 P(0);
 	FSRPixelShaderInput PixelInput;
 	FSRPixelShaderOutput PixelOutput;
-	
+
 	// set count only once
 	PixelInput._attributes._count = VA0._count;
-	PixelOutput._color_cnt = InContext._ps->OutputColorCount();
-	
+	PixelOutput._color_cnt = ps->OutputColorCount();
+
 	for (int32_t cy = Y0; cy < Y1; ++cy)
 	{
 		for (int32_t cx = X0; cx < X1; ++cx)
@@ -696,15 +676,9 @@ static void RasterizeTriangleMSAA4(const FSR_Context& InContext, const FSRVertex
 				const float w2 = (1.f - w0 - w1); // fixed for (w0 + w1 + w2) != 1.0
 
 				const float depth = w0 * SV0._screen_pos.z + w1 * SV1._screen_pos.z + w2 * SV2._screen_pos.z;
-#if SR_ENABLE_PERFORMACE_STAT
-				PerfCounter.StartPerf();
-#endif
-				bool bPassDepth = InContext.DepthTestAndOverrideMSAA(cx, cy, depth, sampleIndex);
-#if SR_ENABLE_PERFORMACE_STAT
-				elapse_microseconds = PerfCounter.EndPerf();
-				Stats->_depth_tw_count++;
-				Stats->_depth_total_microseconds += elapse_microseconds;
-#endif
+
+				bool bPassDepth = InCtx._SRCtx->DepthTestAndOverrideMSAA(cx, cy, depth, sampleIndex);
+
 				if (!bPassDepth)
 				{
 					continue;
@@ -713,7 +687,7 @@ static void RasterizeTriangleMSAA4(const FSR_Context& InContext, const FSRVertex
 				bitMask |= (0x01 << sampleIndex);
 			} // end for sampleIndex
 
-			if (!bitMask) 
+			if (!bitMask)
 			{
 				continue;
 			}
@@ -735,30 +709,97 @@ static void RasterizeTriangleMSAA4(const FSR_Context& InContext, const FSRVertex
 				// attributes
 				InterpolateVertexAttributes(VA0, w0, VA1, w1, VA2, w2, W, PixelInput._attributes);
 			}
-			
-#if SR_ENABLE_PERFORMACE_STAT
-			PerfCounter.StartPerf();
-#endif
-			ps->Process(InContext, PixelInput, PixelOutput);
 
-#if SR_ENABLE_PERFORMACE_STAT
-			elapse_microseconds = PerfCounter.EndPerf();
-			Stats->_ps_invoke_count++;
-			Stats->_ps_total_microseconds += elapse_microseconds;
-#endif
+			ps->Process(InCtx._psCtx, PixelInput, PixelOutput);
 
-#if SR_ENABLE_PERFORMACE_STAT
-			PerfCounter.StartPerf();
-#endif
-			InContext.OutputAndMergeColorMSAA(cx, cy, PixelOutput, bitMask);
+			InCtx._SRCtx->OutputAndMergeColorMSAA(cx, cy, PixelOutput, bitMask);
 
-#if SR_ENABLE_PERFORMACE_STAT
-			elapse_microseconds = PerfCounter.EndPerf();
-			Stats->_color_write_count += PixelOutput._color_cnt;
-			Stats->_color_total_microseconds += elapse_microseconds;
-#endif
 		} //end cx
 	} // end cy
+}
+
+static void RasterizeTriangleMSAA4(const FSR_Context& InContext, const FSRVertexShaderOutput& A, const FSRVertexShaderOutput& B, const FSRVertexShaderOutput& C)
+{
+	assert(InContext._MSAASamplesNum == 4);
+
+	const FSRVertexShaderOutput* ABC[3] = { &A, &B, &C };
+	FSR_RasterizedVert screen[3];
+
+	// perspective divide
+	for (uint32_t i = 0; i < 3; ++i)
+	{
+		float inv_w = 1.f / ABC[i]->_vertex.w;
+		screen[i]._inv_w = inv_w;
+		screen[i]._ndc_pos.x = ABC[i]->_vertex.x * inv_w;
+		screen[i]._ndc_pos.y = ABC[i]->_vertex.y * inv_w;
+		screen[i]._ndc_pos.z = ABC[i]->_vertex.z * inv_w;
+		screen[i]._screen_pos = InContext.NDCToScreenPostion(screen[i]._ndc_pos);
+	}
+
+	uint32_t iv0 = 0, iv1 = 1, iv2 = 2;
+	float E012 = EdgeFunction(screen[0]._screen_pos, screen[1]._screen_pos, screen[2]._screen_pos);
+	if (E012 > -1.f && E012 < 1.f)
+	{
+		return; // DISCARD!
+	}
+
+	bool bClockwise = (E012 >= 0.f);
+	bool bClipped = bClockwise ^ (InContext._front_face == EFrontFace::FACE_CW);
+	if (bClipped)
+	{
+		return;  // DISCARD!
+	}
+
+	if (!bClockwise) // exchange v to clockwise
+	{
+		iv1 = 2; iv2 = 1;
+		E012 = -E012;
+	}
+
+	FSR_Rectangle bbox;
+	const FSR_Rectangle bbox_triangle = BoundingboxOfTriangle(screen[0]._screen_pos, screen[1]._screen_pos, screen[2]._screen_pos);
+	if (!intersect(bbox_triangle, InContext.ViewportRectangle(), bbox))
+	{
+		return; // DISCARD!
+	}
+
+	FTiledRenderingContext TileCtx;
+
+	TileCtx._SRCtx = &InContext;
+	TileCtx._Pointers = InContext._pointers_shadow;
+	TileCtx._psCtx._mvps = InContext._mvps;
+	TileCtx._psCtx._material = InContext._pointers_shadow._material;
+
+	const float kOneOverE012 = 1.f / E012;
+	const FSR_RasterizedVert& SV0 = screen[iv0];
+	const FSR_RasterizedVert& SV1 = screen[iv1];
+	const FSR_RasterizedVert& SV2 = screen[iv2];
+
+	TileCtx._kOneOverE012 = kOneOverE012;
+	TileCtx._SV0 = SV0;
+	TileCtx._SV1 = SV1;
+	TileCtx._SV2 = SV2;
+
+	DivideVertexAttributesByW(ABC[iv0]->_attributes, SV0._inv_w, TileCtx._VA0);
+	DivideVertexAttributesByW(ABC[iv1]->_attributes, SV1._inv_w, TileCtx._VA1);
+	DivideVertexAttributesByW(ABC[iv2]->_attributes, SV2._inv_w, TileCtx._VA2);
+
+	const int32_t X0 = static_cast<int32_t>(floor(bbox._minx));
+	const int32_t Y0 = static_cast<int32_t>(floor(bbox._miny));
+	const int32_t X1 = static_cast<int32_t>(ceilf(bbox._maxx));
+	const int32_t Y1 = static_cast<int32_t>(ceilf(bbox._maxy));
+
+	TileCtx._X0 = X0;
+	TileCtx._Y0 = Y0;
+	TileCtx._X1 = X1;
+	TileCtx._Y1 = Y1;
+
+	if (InContext._bEnableMultiThreads) {
+		MultiThreadsProcessTile(TileCtx, &RasterizeTriangleMSAA4_Tile);
+	}
+	else {
+		RasterizeTriangleMSAA4_Tile(TileCtx);
+	}
 }
 
 static void RasterizeTriangle(const FSR_Context& InContext, const FSRVertexShaderOutput& A, const FSRVertexShaderOutput& B, const FSRVertexShaderOutput& C)
@@ -949,3 +990,240 @@ void FSR_Renderer::DrawMesh(FSR_Context& InContext, const FSR_Mesh& InMesh)
 	} // end for k
 }
 
+
+//////////////////////////////////////////////////////////////////////////
+//  Multi-Thread Tiled-Rendering
+//
+//////////////////////////////////////////////////////////////////////////
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+
+
+typedef void (*pfnTileHandler)(const FTiledRenderingContext& InCtx);
+
+struct FTileCommand {
+	bool _terminate;
+	FTiledRenderingContext	_ctx;
+	pfnTileHandler	_handler;
+};
+
+#define BUFFER_SIZE		32
+class FRingBuffer
+{
+public:
+	FRingBuffer() 
+		: _head(0)
+		, _tail(0)
+	{}
+
+	void Enqueue(const FTileCommand& InCmd);
+	void Dequeue(FTileCommand &cmd);
+	void WaitForEmpty();
+protected:
+	bool IsFull() { return ((_tail + 1) % BUFFER_SIZE) == _head; }
+	bool IsEmpty() { return _head == _tail; }
+protected:
+	FTileCommand _cmdbuffer[BUFFER_SIZE];
+	int _head, _tail;
+
+	std::mutex	_mutex;
+	std::condition_variable _cv;
+};
+
+void FRingBuffer::Enqueue(const FTileCommand& InCmd)
+{
+	std::unique_lock<std::mutex> lock(_mutex);
+
+	while (IsFull()) {
+		_cv.wait(lock);
+	}
+
+	_cmdbuffer[_tail] = InCmd;
+	_tail = (_tail + 1) % BUFFER_SIZE;
+
+	_cv.notify_all();
+}
+
+void FRingBuffer::Dequeue(FTileCommand& OutCmd)
+{
+	std::unique_lock<std::mutex> lock(_mutex);
+
+	while (IsEmpty()) {
+		_cv.wait(lock);
+	}
+
+	OutCmd = _cmdbuffer[_head];
+	_head = (_head + 1) % BUFFER_SIZE;
+
+	_cv.notify_all();
+}
+
+void FRingBuffer::WaitForEmpty()
+{
+	std::unique_lock<std::mutex> lock(_mutex);
+
+	while (!IsEmpty()) {
+		_cv.wait(lock);
+	}
+}
+
+
+#define TILES_X		6
+#define TILES_Y		6
+
+class FTileRenderSystem
+{
+public:
+	static FTileRenderSystem& sharedInstance();
+
+	void Start();
+	void Terminate();
+	void FlushCommands();
+
+public:
+	FTileRenderSystem() {}
+
+	FRingBuffer _cmdbuffers[TILES_Y][TILES_X];
+	std::thread _threads[TILES_Y][TILES_X];
+};
+
+static void thread_callback(int tilex, int tiley)
+{
+	FTileRenderSystem& sharedSys = FTileRenderSystem::sharedInstance();
+	FRingBuffer& buffer = sharedSys._cmdbuffers[tiley][tilex];
+	FTileCommand cmd;
+
+	while (1) {
+		buffer.Dequeue(cmd);
+		if (cmd._terminate)
+		{
+			break;
+		}
+		cmd._handler(cmd._ctx);
+	}
+}
+
+FTileRenderSystem& FTileRenderSystem::sharedInstance()
+{
+	static FTileRenderSystem shared;
+
+	return shared;
+}
+
+void FTileRenderSystem::Start()
+{
+	for (int y = 0; y<TILES_Y; y++)
+	{
+		for (int x=0; x<TILES_X; x++)
+		{
+			_threads[y][x] = std::thread(&thread_callback, x, y);
+		}
+	}
+}
+
+void FTileRenderSystem::Terminate()
+{
+	FTileCommand Cmd;
+
+	Cmd._terminate = true;
+	for (int y = 0; y < TILES_Y; y++)
+	{
+		for (int x = 0; x < TILES_X; x++)
+		{
+			_cmdbuffers[y][x].Enqueue(Cmd);
+			_threads[y][x].join();
+		}
+	}
+}
+
+void FTileRenderSystem::FlushCommands()
+{
+	for (int y = 0; y < TILES_Y; y++)
+	{
+		for (int x = 0; x < TILES_X; x++)
+		{
+			_cmdbuffers[y][x].WaitForEmpty();
+		}
+	}
+}
+
+static void MultiThreadsProcessTile(const FTiledRenderingContext& InCtx, void (*handler)(const FTiledRenderingContext& InCtx))
+{
+	FTileRenderSystem& sharedSys = FTileRenderSystem::sharedInstance();
+
+	const FSR_Rectangle	&vprect = InCtx._SRCtx->_viewport_rect;
+	float X[TILES_X+1], Y[TILES_Y+1];
+
+	float dx = (int32_t)((vprect._maxx - vprect._minx) / TILES_X);
+	float dy = (int32_t)((vprect._maxy - vprect._miny) / TILES_Y);
+	int32_t k, i, j;
+
+	for (k=1, X[0] = vprect._minx; k<TILES_X; k++)
+	{
+		X[k] = X[k - 1] + dx;
+	}
+	X[k] = vprect._maxx;
+
+	for (k=1, Y[0] = vprect._miny; k<TILES_Y; k++)
+	{
+		Y[k] = Y[k - 1] + dy;
+	}
+	Y[k] = vprect._maxy;
+
+
+	FTileCommand cmd = { false, InCtx, handler };
+	FSR_Rectangle rect0, rect1, rect2;
+	rect0._minx = InCtx._X0;
+	rect0._miny = InCtx._Y0;
+	rect0._maxx = InCtx._X1;
+	rect0._maxy = InCtx._Y1;
+
+	for (i=0; i<TILES_Y; i++)
+	{
+		rect1._miny = Y[i];
+		rect1._maxy = Y[i + 1];
+		for (j=0; j<TILES_X; j++)
+		{
+			rect1._minx = X[j];
+			rect1._maxx = X[j + 1];
+			if (intersect(rect0, rect1, rect2)) {
+
+				cmd._ctx._X0 = rect2._minx;
+				cmd._ctx._Y0 = rect2._miny;
+				cmd._ctx._X1 = rect2._maxx;
+				cmd._ctx._Y1 = rect2._maxy;
+
+				sharedSys._cmdbuffers[i][j].Enqueue(cmd);
+			}
+		} // end for j
+	} // end for i
+}
+
+bool FSR_Renderer::EnableMultiThreads()
+{
+	FTileRenderSystem& shared = FTileRenderSystem::sharedInstance();
+
+	shared.Start();
+	return true;
+}
+
+void FSR_Renderer::Flush(FSR_Context& InContext)
+{
+	FTileRenderSystem& shared = FTileRenderSystem::sharedInstance();
+
+	if (InContext._bEnableMultiThreads) 
+	{
+		shared.FlushCommands();
+	}
+}
+
+void FSR_Renderer::TerminateMultiThreads(FSR_Context& InContext)
+{
+	FTileRenderSystem& shared = FTileRenderSystem::sharedInstance();
+
+	if (InContext._bEnableMultiThreads)
+	{
+		shared.Terminate();
+	}
+}

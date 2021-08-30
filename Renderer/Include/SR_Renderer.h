@@ -19,4 +19,11 @@ public:
 	// draw a mesh
 	// NOTE: this function will modify context's material.
 	static void DrawMesh(FSR_Context& InContext, const FSR_Mesh &InMesh);
+
+	static bool EnableMultiThreads();
+
+	// Flush
+	static void Flush(FSR_Context& InContext);
+
+	static void TerminateMultiThreads(FSR_Context& InContext);
 };
